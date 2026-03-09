@@ -110,7 +110,7 @@ app.post("/webhook", async (req, res) => {
   // ---------------------------------------------------------
   if (lowerMsg === "hi" || lowerMsg === "hello" || lowerMsg === "hey") {
     if (isOwner) {
-      const ownerText = `Hi Viswanath! 👋 I'm Manvi. My AI brain is online! 🧠\n\nYou can now talk to me naturally:\n📌 "Remind me at 4 PM..."\n🔄 "Set a daily routine..."\n🎉 "Manu's birthday is on..."\n🌐 "Who won the recent F1?"`;
+      const ownerText = `Hi Viswanath! 👋 I'm Manvi. My AI brain is online! 🧠\n\nYou can now talk to me naturally:\n📌 "Remind me at 4 PM..."\n🔄 "Set a daily routine..."\n🎉 "Mom's birthday is on..."\n🌐 "Who won the recent F1?"`;
       return await replyAndLog(senderPhone, senderName, message, ownerText);
     } else {
       const guestText = `Hi ${senderName}! 👋 I'm Manvi, Viswanath's personal AI assistant. 🧠`;

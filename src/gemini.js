@@ -3,9 +3,12 @@ const { OpenAI } = require("openai");
 const { getUsage, track, LIMITS } = require("./usage");
 require("dotenv").config();
 
-// 🧠 Primary Brain: Google Gemini Native
+// 🧠 Primary Brain: Google Gemini Direct (Free, if available)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const primaryModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // or 2.5-flash
+const primaryModel = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  generationConfig: { responseMimeType: "application/json" },
+});
 
 // 🧠 Backup Brain: OpenRouter
 const backupAI = new OpenAI({
@@ -13,11 +16,15 @@ const backupAI = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-// --- MAIN ROUTER ---
+/**
+ * Main AI Router: Decides between Gemini and OpenRouter
+ */
 async function analyzeMessage(userMessage, isSummaryRequest = false) {
   const usageStats = await getUsage();
+
   const currentIST = new Date().toLocaleString("en-US", {
     timeZone: "Asia/Kolkata",
+    hour12: false,
   });
 
   const systemPrompt = `
@@ -56,8 +63,8 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
   Message: "What are my special events?"
   JSON: {"intent": "query_events", "targetName": "you", "time": null, "date": null, "taskOrMessage": null}
   
-  Message: "When is Manu's birthday?"
-  JSON: {"intent": "query_birthday", "targetName": "manu", "time": null, "date": null, "taskOrMessage": null}
+  Message: "When is Mom's birthday?"
+  JSON: {"intent": "query_birthday", "targetName": "Mom", "time": null, "date": null, "taskOrMessage": null}
 
   Message: "What is my schedule for tomorrow?"
   JSON: {"intent": "query_schedule", "targetName": "you", "time": null, "date": "2026-02-28", "taskOrMessage": null}
@@ -82,8 +89,9 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
   if (usageStats.gemini < LIMITS.gemini) {
     try {
       const promptToSend = isSummaryRequest
-        ? userMessage
-        : systemPrompt + `\nAnalyze: ${userMessage}`;
+        ? `Summarize the following data concisely: ${userMessage}`
+        : systemPrompt;
+
       const result = await primaryModel.generateContent(promptToSend);
       const responseText = result.response.text();
 
@@ -92,7 +100,7 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
       if (isSummaryRequest) return responseText;
 
       const cleanJSON = responseText.match(/\{[\s\S]*\}/);
-      if (!cleanJSON) throw new Error("No JSON found");
+      if (!cleanJSON) throw new Error("No JSON found in Gemini response");
 
       const parsed = JSON.parse(cleanJSON[0]);
       parsed.ai_meta = `⚡ ${LIMITS.gemini - usageStats.gemini - 1} Gemini left`;
@@ -105,36 +113,47 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
     }
   }
 
-  // --- 2. TRY BACKUP (OPENROUTER) ---
+  // --- 2. TRY BACKUP (OPENROUTER PAID TIER) ---
   if (usageStats.openrouter < LIMITS.openrouter) {
     try {
       console.log("🔄 Routing to OpenRouter Fallback...");
-      const response = await backupAI.chat.completions.create({
-        model: "google/gemini-2.0-flash:free",
+
+      // Setup the API request parameters
+      const requestParams = {
+        model: "openai/gpt-4o-mini",
         messages: [
           {
             role: "system",
             content: isSummaryRequest
-              ? "You are Manvi. Summarize the following data concisely."
+              ? "You are Manvi. Summarize the following search results concisely in plain text."
               : systemPrompt,
           },
           { role: "user", content: userMessage },
         ],
-      });
+      };
+
+      // ONLY force JSON mode if we are NOT doing a summary
+      if (!isSummaryRequest) {
+        requestParams.response_format = { type: "json_object" };
+      }
+
+      const response = await backupAI.chat.completions.create(requestParams);
 
       await track("openrouter");
       const backupText = response.choices[0].message.content;
 
+      // If it was a summary, just return the plain text!
       if (isSummaryRequest) return backupText;
 
+      // Otherwise, parse the JSON for intents
       const jsonMatch = backupText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON found");
+      if (!jsonMatch) throw new Error("No JSON found in OpenRouter response");
 
       const parsedBackup = JSON.parse(jsonMatch[0]);
-      parsedBackup.ai_meta = `🤖 ${LIMITS.openrouter - usageStats.openrouter - 1} OpenRouter left`;
+      parsedBackup.ai_meta = `🤖 OpenRouter Premium Active`;
       return parsedBackup;
     } catch (backupErr) {
-      console.error("OpenAI Fallback Error:", backupErr);
+      console.error("OpenRouter Fallback Error:", backupErr);
       return {
         intent: "api_error",
         targetName: "you",

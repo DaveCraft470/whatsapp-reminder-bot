@@ -48,7 +48,7 @@ Manvi is now an **Agentic AI** with built-in redundancy and live web access:
 🔔  One-Off Reminders      "Remind me at 3 PM to call dad"
                           Extracts the task and time automatically
 
-🔔  Double-Lock Event      "Manu's birthday is on Feb 9th"
+🔔  Double-Lock Event      "Mom's birthday is on Feb 9th"
     Alerts                Gets you an early-warning alert 24 hours before
                           to plan, and a second alert on the actual day
 
@@ -56,10 +56,10 @@ Manvi is now an **Agentic AI** with built-in redundancy and live web access:
                           Engineered with strict 24-hour IST time-matching
                           so daily routines never miss a beat
 
-🎂  Yearly Events          "Manu's birthday is on Feb 9th 2026"
+🎂  Yearly Events          "Mom's birthday is on Feb 9th 2026"
                           Never miss a birthday or anniversary again
 
-✉️  Instant Dispatch       "Tell Manu I will be 10 minutes late"
+✉️  Instant Dispatch       "Tell Mom I will be 10 minutes late"
                           Forwards messages instantly via the bot
 
 📊  Usage Dashboard        /limit — See remaining API credits across all brains and search engines
@@ -87,12 +87,12 @@ Manvi: ✅ Reminder set for you at 2:00 PM
 
 ### Double-Lock Event Alerts
 ```
-(Day before Manu's birthday — 08:30 AM IST)
-Manvi: ⏳ Advance Alert: Tomorrow is Manu's birthday!
+(Day before Mom's birthday — 08:30 AM IST)
+Manvi: ⏳ Advance Alert: Tomorrow is Mom's birthday!
        I'm letting you know now so you can prepare something special. 🎁
 
-(On Manu's birthday — 08:30 AM IST)
-Manvi: 🥳 TODAY IS THE DAY! It's Manu's birthday! Time to send your best wishes! 🎈
+(On Mom's birthday — 08:30 AM IST)
+Manvi: 🥳 TODAY IS THE DAY! It's Mom's birthday! Time to send your best wishes! 🎈
 ```
 
 ### Live Web Search
@@ -107,7 +107,7 @@ You:   What is my schedule for today?
 Manvi: 📅 Your Schedule for 2026-02-27:
        
        *Special Events:*
-       - Manu's birthday 🎉
+       - Mom's birthday 🎉
        
        *Reminders:*
        - 2:00 PM: drink water
@@ -118,9 +118,9 @@ Manvi: 🎂 Dad's birthday is saved as 1970-05-15.
 
 ### Address Book & Instant Messages
 ```
-You:   Shoot a text over to Manu and tell her I'm heading home
-Manvi: ✅ Message successfully sent to Manu!
-(Manu receives: ✨ Message from Viswanath: I'm heading home)
+You:   Shoot a text over to Mom and tell her I'm heading home
+Manvi: ✅ Message successfully sent to Mom!
+(Mom receives: ✨ Message from Viswanath: I'm heading home)
 ```
 
 ### Usage Dashboard
@@ -153,8 +153,8 @@ Manvi: 🔔 Active Upcoming Reminders:
        - [Feb 27, 4:00 PM] review Onemark Stories
        - [Feb 28, 9:00 AM] dad: take medicine
 
-Manu:  What contacts do you have?
-Manvi: 🔒 I'm sorry Manu, but only Viswanath has clearance to access my global memory banks.
+Mom:  What contacts do you have?
+Manvi: 🔒 I'm sorry Mom, but only Viswanath has clearance to access my global memory banks.
 ```
 
 ---
