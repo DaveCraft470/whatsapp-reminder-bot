@@ -3,7 +3,6 @@ const { OpenAI } = require("openai");
 const { getUsage, track, LIMITS } = require("./usage");
 require("dotenv").config();
 
-// 🧠 Primary Brains: Google Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Tier 1: Gemini 3 Flash Preview
@@ -11,9 +10,7 @@ const gemini3Json = genAI.getGenerativeModel({
   model: "gemini-3-flash-preview",
   generationConfig: { responseMimeType: "application/json" },
 });
-const gemini3Text = genAI.getGenerativeModel({
-  model: "gemini-3-flash-preview",
-});
+const gemini3Text = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
 // Tier 2: Gemini 2.5 Flash
 const gemini25Json = genAI.getGenerativeModel({
@@ -22,24 +19,23 @@ const gemini25Json = genAI.getGenerativeModel({
 });
 const gemini25Text = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-// Tier 3: Groq (Llama 3.3 — Lightning Fast & Free)
+// Tier 3: Groq — Llama 3.3 (free)
 const groqAI = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Tier 4: OpenRouter (Bulletproof Paid Fallback)
+// Tier 4: OpenRouter — GPT-4o-mini (paid fallback)
 const backupAI = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 /**
- * Main AI Router: The 4-Tier Waterfall System
+ * 4-Tier AI Waterfall Router
  *
- * Returns:
- *   - Intent requests  (isSummaryRequest=false): parsed JSON object with ai_meta field
- *   - Summary requests (isSummaryRequest=true):  { text: string, ai_meta: string }
+ * Intent requests  (isSummaryRequest=false): returns parsed JSON with ai_meta field
+ * Summary requests (isSummaryRequest=true):  returns { text: string, ai_meta: string }
  */
 async function analyzeMessage(userMessage, isSummaryRequest = false) {
   const usageStats = await getUsage();
@@ -49,28 +45,29 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
   });
 
   const systemPrompt = `
-  You are the intelligent brain of a personal WhatsApp assistant named Manvi. 
+  You are the intelligent brain of a personal WhatsApp assistant named Manvi.
   Your owner is Viswanath. You are currently talking to a user via WhatsApp.
-  
+
   CRITICAL CONTEXT:
-  The current date and time right now is: ${currentIST}. 
-  If the user asks for a relative time like "in 5 minutes", use this current time to calculate the exact HH:MM:SS.
-  
-  Your job is to read the user's message and extract the exact intent.
-  You MUST respond with ONLY a valid, raw JSON object. Do not include markdown or conversational text.
-  
-  Use this exact JSON structure:
+  The current date and time is: ${currentIST}.
+  If the user provides a relative time like "in 5 minutes", calculate the exact HH:MM:SS from this reference.
+
+  Your job is to extract the user's intent and return a JSON object.
+  Respond with ONLY a valid raw JSON object. No markdown. No explanation.
+
+  JSON structure:
   {
-    "intent": "reminder" | "routine" | "event" | "instant_message" | "chat" | "query_birthday" | "query_schedule" | "query_routines" | "query_contacts" | "query_reminders" | "query_events" | "delete_task" | "web_search" | "unknown",
-    "targetName": "you" (Use "you" if the message is meant for Viswanath, "him", "he", or "owner") OR the extracted name,
-    "time": "HH:MM:SS" (in 24-hour format if a time is mentioned/calculated. Assume IST timezone.),
-    "date": "YYYY-MM-DD" (if a specific date is mentioned/calculated for queries or events),
-    "taskOrMessage": "If intent is 'chat', provide your actual helpful/funny response here. For other intents, extract the cleaned task or search query."
+    "intent": "reminder" | "routine" | "event" | "instant_message" | "chat" | "query_birthday" | "query_schedule" | "query_routines" | "query_contacts" | "query_reminders" | "query_events" | "delete_task" | "save_contact" | "web_search" | "unknown",
+    "targetName": "you" (if message is for Viswanath, "him", "he", or "owner") OR the extracted name,
+    "time": "HH:MM:SS" (24-hour format, IST timezone, or null),
+    "date": "YYYY-MM-DD" (if a date is mentioned or calculable, or null),
+    "taskOrMessage": "For chat intent: provide a direct response. For save_contact: the extracted name. For all others: extract the task or search query.",
+    "phone": "digits only for save_contact (no spaces, no +, no dashes), null for all others"
   }
 
   Examples:
-  Message: "What was the recent f1 grand prix held, where and who won it?"
-  JSON: {"intent": "web_search", "targetName": "you", "time": null, "date": null, "taskOrMessage": "recent f1 grand prix winner and location"}
+  Message: "What was the recent F1 grand prix and who won?"
+  JSON: {"intent": "web_search", "targetName": "you", "time": null, "date": null, "taskOrMessage": "recent F1 grand prix winner and location"}
 
   Message: "What contacts do you have?"
   JSON: {"intent": "query_contacts", "targetName": "you", "time": null, "date": null, "taskOrMessage": null}
@@ -94,53 +91,55 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
   JSON: {"intent": "reminder", "targetName": "you", "time": "14:12:00", "date": null, "taskOrMessage": "check logs"}
 
   Message: "Tell me a joke"
-  JSON: {"intent": "chat", "targetName": null, "time": null, "date": null, "taskOrMessage": "Why do programmers prefer dark mode? Because light attracts bugs!"}
+  JSON: {"intent": "chat", "targetName": null, "time": null, "date": null, "taskOrMessage": "Why do programmers prefer dark mode? Because light attracts bugs."}
 
   Message: "Tell him to call me back"
   JSON: {"intent": "instant_message", "targetName": "you", "time": null, "date": null, "taskOrMessage": "call me back"}
 
   Message: "Delete the reminder to drink water"
-  JSON: {"intent": "delete_task", "targetName": "you", "time": null, "date": null, "taskOrMessage": "drink water"}
+  JSON: {"intent": "delete_task", "targetName": "you", "time": null, "date": null, "taskOrMessage": "drink water", "phone": null}
 
-  Now, analyze this message:
+  Message: "Save Manu as 919876543210"
+  JSON: {"intent": "save_contact", "targetName": "Manu", "time": null, "date": null, "taskOrMessage": "Manu", "phone": "919876543210"}
+
+  Message: "Add Dad to contacts, his number is 91 98765 43210"
+  JSON: {"intent": "save_contact", "targetName": "Dad", "time": null, "date": null, "taskOrMessage": "Dad", "phone": "919876543210"}
+
   Message: "${userMessage}"
   `;
 
   const promptToSend = isSummaryRequest
-    ? `Summarize the following search results concisely in plain text. Do not use JSON formatting:\n\n${userMessage}`
-    : systemPrompt + `\nAnalyze: ${userMessage}`;
+    ? `Summarize the following search results concisely in plain text. No JSON, no markdown:\n\n${userMessage}`
+    : systemPrompt;
 
-  // Shared params for OpenAI-compatible APIs (Groq & OpenRouter)
   const openAIMessages = [
     {
       role: "system",
       content: isSummaryRequest
-        ? "You are Manvi. Summarize the following search results concisely in plain text."
+        ? "You are Manvi. Summarize search results concisely in plain text."
         : systemPrompt,
     },
     { role: "user", content: userMessage },
   ];
 
-  // ---------------------------------------------------------
-  // TIER 1 & 2: GOOGLE GEMINI
-  // ---------------------------------------------------------
+  // --- TIER 1 & 2: GOOGLE GEMINI ---
   let googleResponseText = null;
   let activeBrain = "Gemini 3 Flash";
 
   if (usageStats.gemini < LIMITS.gemini) {
     try {
-      const activeModel = isSummaryRequest ? gemini3Text : gemini3Json;
-      const result = await activeModel.generateContent(promptToSend);
+      const model = isSummaryRequest ? gemini3Text : gemini3Json;
+      const result = await model.generateContent(promptToSend);
       googleResponseText = result.response.text();
-    } catch (err3) {
-      console.warn("⚠️ Gemini 3 failed. Cascading to Gemini 2.5...");
+    } catch {
+      console.warn("[gemini] Tier 1 failed, cascading to Tier 2");
       try {
-        const activeModel = isSummaryRequest ? gemini25Text : gemini25Json;
-        const result = await activeModel.generateContent(promptToSend);
+        const model = isSummaryRequest ? gemini25Text : gemini25Json;
+        const result = await model.generateContent(promptToSend);
         googleResponseText = result.response.text();
         activeBrain = "Gemini 2.5 Flash";
-      } catch (err25) {
-        console.warn("⚠️ All Google models failed. Cascading to Groq...");
+      } catch {
+        console.warn("[gemini] Tier 2 failed, cascading to Groq");
       }
     }
   }
@@ -148,23 +147,21 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
   if (googleResponseText) {
     await track("gemini");
     const remaining = LIMITS.gemini - (usageStats.gemini + 1);
-    const ai_meta = `⚡ ${activeBrain} (${remaining} left)`;
+    const ai_meta = `${activeBrain} — ${remaining} remaining`;
 
     if (isSummaryRequest) return { text: googleResponseText, ai_meta };
 
-    const cleanJSON = googleResponseText.match(/\{[\s\S]*\}/);
-    if (!cleanJSON) throw new Error("No JSON found in Google response");
+    const match = googleResponseText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON found in Gemini response");
 
-    const parsed = JSON.parse(cleanJSON[0]);
+    const parsed = JSON.parse(match[0]);
     parsed.ai_meta = ai_meta;
     return parsed;
   }
 
-  // ---------------------------------------------------------
-  // TIER 3: GROQ (FREE — LLAMA 3.3)
-  // ---------------------------------------------------------
+  // --- TIER 3: GROQ (FREE — LLAMA 3.3) ---
   try {
-    console.log("⚡ Routing to Groq Free Tier...");
+    console.log("[groq] Routing to Tier 3");
     const response = await groqAI.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: openAIMessages,
@@ -172,27 +169,25 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
     });
 
     await track("groq");
-    const groqText = response.choices[0].message.content;
+    const text = response.choices[0].message.content;
     const remaining = LIMITS.groq - (usageStats.groq + 1);
-    const ai_meta = `🚀 Groq Fast (Llama 3.3 — ${remaining} left)`;
+    const ai_meta = `Groq Llama 3.3 — ${remaining} remaining`;
 
-    if (isSummaryRequest) return { text: groqText, ai_meta };
+    if (isSummaryRequest) return { text, ai_meta };
 
-    const jsonMatch = groqText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found in Groq response");
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON found in Groq response");
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(match[0]);
     parsed.ai_meta = ai_meta;
     return parsed;
-  } catch (groqErr) {
-    console.warn("⚠️ Groq failed. Cascading to OpenRouter...", groqErr.message);
+  } catch (err) {
+    console.warn("[groq] Tier 3 failed, cascading to OpenRouter:", err.message);
   }
 
-  // ---------------------------------------------------------
-  // TIER 4: OPENROUTER (PAID — GPT-4o-mini)
-  // ---------------------------------------------------------
+  // --- TIER 4: OPENROUTER (PAID — GPT-4o-mini) ---
   try {
-    console.log("🤖 Routing to OpenRouter Premium...");
+    console.log("[openrouter] Routing to Tier 4");
     const response = await backupAI.chat.completions.create({
       model: "openai/gpt-4o-mini",
       messages: openAIMessages,
@@ -200,25 +195,26 @@ async function analyzeMessage(userMessage, isSummaryRequest = false) {
     });
 
     await track("openrouter");
-    const orText = response.choices[0].message.content;
-    const ai_meta = `🤖 OpenRouter (GPT-4o-mini)`;
+    const text = response.choices[0].message.content;
+    const ai_meta = `OpenRouter GPT-4o-mini`;
 
-    if (isSummaryRequest) return { text: orText, ai_meta };
+    if (isSummaryRequest) return { text, ai_meta };
 
-    const jsonMatch = orText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found in OpenRouter response");
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON found in OpenRouter response");
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(match[0]);
     parsed.ai_meta = ai_meta;
     return parsed;
-  } catch (backupErr) {
-    console.error("OpenRouter Fallback Error:", backupErr);
+  } catch (err) {
+    console.error("[openrouter] All tiers exhausted:", err.message);
+    await track("error");
     return {
       intent: "api_error",
       targetName: "you",
       time: null,
       date: null,
-      taskOrMessage: "All AI models are offline or limits reached.",
+      taskOrMessage: "All AI models are currently offline or daily limits have been reached.",
     };
   }
 }

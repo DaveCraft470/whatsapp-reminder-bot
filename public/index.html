@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manvi OS — System Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="wordmark">MANVI <span>OS</span></div>
+      <div class="header-right">
+        <span class="version" id="versionBadge">v—</span>
+        <button id="themeToggle" class="theme-btn">Light</button>
+        <div class="status-badge" id="systemBadge">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="uptime-section">
+      <div class="section-label">Component Health — 90 Day History</div>
+      <div class="uptime-row">
+        <span class="uptime-label">AI Inference Engine</span>
+        <div class="uptime-blocks" id="uptimeViz"></div>
+        <span class="uptime-status" id="aiStatusText">—</span>
+      </div>
+    </section>
+
+    <section class="metrics-grid">
+      <div class="metric-card" id="card-gemini">
+        <div class="metric-tier">TIER 1 / 2</div>
+        <div class="metric-name">Gemini</div>
+        <div class="metric-value"><span id="geminiCount">0</span><span class="metric-limit">/ <span id="geminiLimit"></span></span></div>
+        <div class="progress-track"><div class="progress-fill blue" id="geminiBar"></div></div>
+      </div>
+
+      <div class="metric-card" id="card-groq">
+        <div class="metric-tier">TIER 3</div>
+        <div class="metric-name">Groq</div>
+        <div class="metric-value"><span id="groqCount">0</span><span class="metric-limit">/ <span id="groqLimit"></span></span></div>
+        <div class="progress-track"><div class="progress-fill violet" id="groqBar"></div></div>
+      </div>
+
+      <div class="metric-card" id="card-or">
+        <div class="metric-tier">TIER 4 — PAID</div>
+        <div class="metric-name">OpenRouter</div>
+        <div class="metric-value"><span id="orCount">0</span><span class="metric-limit">/ <span id="orLimit"></span></span></div>
+        <div class="progress-track"><div class="progress-fill amber" id="orBar"></div></div>
+      </div>
+
+      <div class="metric-card" id="card-tavily">
+        <div class="metric-tier">SEARCH — MONTHLY</div>
+        <div class="metric-name">Tavily</div>
+        <div class="metric-value"><span id="tavilyCount">0</span><span class="metric-limit">/ <span id="tavilyLimit"></span></span></div>
+        <div class="progress-track"><div class="progress-fill teal" id="tavilyBar"></div></div>
+      </div>
+
+      <div class="metric-card" id="card-serper">
+        <div class="metric-tier">SEARCH — LIFETIME</div>
+        <div class="metric-name">Serper</div>
+        <div class="metric-value"><span id="serperCount">0</span><span class="metric-limit">/ <span id="serperLimit"></span></span></div>
+        <div class="progress-track"><div class="progress-fill rose" id="serperBar"></div></div>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <div class="section-label">7-Day Request Volume</div>
+      <div class="chart-legend">
+        <span class="legend-item blue">Successful Requests</span>
+        <span class="legend-item rose">API Failures</span>
+      </div>
+      <canvas id="usageChart" height="60"></canvas>
+    </section>
+
+    <section class="jobs-section">
+      <div class="section-header">
+        <div class="section-label">Background Processes</div>
+        <span class="sync-time" id="syncTime"></span>
+      </div>
+      <table class="jobs-table">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>Schedule</th>
+            <th>Description</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="jobsTableBody">
+          <tr><td colspan="4" class="loading-cell">Loading...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      <span id="uptimeText">Uptime: calculating...</span>
+      <span class="footer-divider">|</span>
+      <a href="https://onemark.agency" target="_blank" rel="noopener">OneMark Digital Agency</a>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

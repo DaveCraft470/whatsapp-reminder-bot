@@ -1,269 +1,146 @@
-# 🧠 Manvi — Your Agentic Second Brain
+# Manvi
 
-> _A personal WhatsApp assistant that remembers, researches, and monitors itself._
-
-Built by [Onemark](https://onemark.digital) · The ultimate friction-less assistant.
+A personal WhatsApp assistant with a 4-tier AI fallback engine, live web search, and a self-hosted monitoring dashboard. Built to stay online even when individual AI providers hit rate limits.
 
 ---
 
-## 💡 Why Manvi Exists
+## Overview
 
-Most reminder apps force you to leave WhatsApp, open another app, navigate menus, set times, and save. By the time you're done, you've forgotten why you opened it.
+Most reminder apps require you to leave WhatsApp, navigate a separate interface, and remember to return. Manvi removes that friction by living inside the conversation itself.
 
-**Manvi lives where you already are** — inside WhatsApp. Powered by Google's Gemini AI, you type like you're texting a friend:
+Write naturally, like texting a contact:
 
 ```
-"Remind me at 4 PM to review Onemark Stories"
+Remind me at 4 PM to review the Onemark proposal
 ```
 
-Done. Manvi's AI parses the intent, stores it securely in PostgreSQL, and pings you exactly at 4 PM. No app switching. No rigid formats. No friction.
+Manvi parses the intent, stores the reminder, and fires it at exactly 4 PM IST — no app switching, no rigid command syntax.
 
 ---
 
-## ✨ What's New in Manvi 2.0
+## What It Does
 
-Manvi is now an **Agentic AI** with built-in redundancy and live web access:
-
-- 🧠 **4-Tier Waterfall AI**: Gemini 3 Flash → Gemini 2.5 Flash → Groq Llama 3.3 → GPT-4o-mini. Automatic cascading with zero downtime.
-- 🌐 **Live Web Search**: Integrated Tavily (Primary) and Serper (Emergency Fallback) for real-time information.
-- 📊 **Usage Tracking**: Real-time monitoring of API quotas across all services via the `/limit` command.
-- 🚨 **Autonomous Alerts**: Manvi will text you automatically when your search credits are running low.
-- 🔔 **Double-Lock Event Alerts**: Special events fire two alerts — a 24-hour advance warning to plan ahead, and a celebratory alert on the actual day.
-- 🔄 **Hardened Routines**: Daily routines use strict IST 24-hour time-matching so they never miss a beat.
-- 🩺 **Self-Healing Usage Tracker**: Daily API usage rows are created automatically — no manual DB setup needed.
-
----
-
-## ✨ What Manvi Does
-
-```
-🤖  AI Powered             Understands messy, natural language via a 4-tier waterfall:
-                          Gemini 3 → Gemini 2.5 → Groq Llama 3.3 → GPT-4o-mini
-
-🌐  Live Web Search        "Who won the game yesterday?" or "What's the weather in Vizag?"
-                          Powered by Tavily (primary) and Serper (fallback)
-
-🔍  Memory Retrieval       "What is my schedule today?" or "When is dad's birthday?"
-                          Instantly queries the database to fetch saved events
-
-🔔  One-Off Reminders      "Remind me at 3 PM to call dad"
-                          Extracts the task and time automatically
-
-🔔  Double-Lock Event      "Manu's birthday is on Feb 9th"
-    Alerts                Gets you an early-warning alert 24 hours before
-                          to plan, and a second alert on the actual day
-
-🔄  Hardened Routines      "Set a routine to check logs at 9 AM"
-                          Engineered with strict 24-hour IST time-matching
-                          so daily routines never miss a beat
-
-🎂  Yearly Events          "Manu's birthday is on Feb 9th 2026"
-                          Never miss a birthday or anniversary again
-
-✉️  Instant Dispatch       "Tell Manu I will be 10 minutes late"
-                          Forwards messages instantly via the bot
-
-📊  Usage Dashboard        /limit — See remaining API credits across all brains and search engines
-
-💬  Conversational Chat    Can answer simple questions and tell jokes when prompted
-
-🔒  Admin-Only Access      Caller ID verification blocks guests from accessing global lists
-
-📇  Secure Address Book    Cross-references names with a secure Supabase database
-
-⏰  IST-Native Cron        Runs on Indian Standard Time, immune to cloud server timezone bugs
-```
+| Feature | Description |
+|---|---|
+| Natural language parsing | Understands free-form input via a 4-tier AI waterfall |
+| One-off reminders | Set by time or relative duration ("in 10 minutes") |
+| Daily routines | Repeating tasks matched by IST time every minute |
+| Yearly events | Birthdays, anniversaries with a 24-hour advance alert |
+| Double-lock event alerts | Day-before warning + same-day notification at 08:30 IST |
+| Live web search | Tavily primary, Serper fallback, AI-summarised results |
+| Instant message dispatch | Forward messages to saved contacts by name |
+| Schedule query | "What's my schedule for tomorrow?" |
+| Birthday lookup | Queries `special_events` table directly |
+| Usage dashboard | `/limit` command via WhatsApp; full web dashboard at root URL |
+| Caller ID | Admin commands restricted to owner phone number |
+| Address book | Contact name-to-phone resolution via Supabase |
+| AI error tracking | All 4-tier failures tracked in `api_usage.error_count` |
 
 ---
 
-## 🎯 How to Talk to Manvi
+## AI Architecture — 4-Tier Waterfall
 
-Because Manvi uses AI, you don't need to memorize commands. Just talk to her naturally:
-
-### Reminders & Routines
+Each request cascades down the chain only on failure or quota exhaustion.
 
 ```
-You:   Remind me to drink water at 2:00 PM
-Manvi: ✅ Reminder set for you at 2:00 PM
-       ⚡ Gemini 3 Flash (38 left)
+Tier 1   Gemini 3 Flash Preview    Free   ~20 req/day
+Tier 2   Gemini 2.5 Flash          Free   ~20 req/day  (shared 40/day cap with Tier 1)
+Tier 3   Groq — Llama 3.3 70b     Free   3,000 req/day safety cap
+Tier 4   OpenRouter — GPT-4o-mini  Paid   50 req/day safety cap (~$5 credit)
 ```
 
-### Double-Lock Event Alerts
-
-```
-(Day before Manu's birthday — 08:30 AM IST)
-Manvi: ⏳ Advance Alert: Tomorrow is Manu's birthday!
-       I'm letting you know now so you can prepare something special. 🎁
-
-(On Manu's birthday — 08:30 AM IST)
-Manvi: 🥳 TODAY IS THE DAY! It's Manu's birthday! Time to send your best wishes! 🎈
-```
-
-### Live Web Search
-
-```
-You:   Who won the IPL match yesterday?
-Manvi: 🌐 Search Results (Tavily)
-
-       India won the IPL final against...
-       ⚡ Gemini 3 Flash (37 left)
-```
-
-### Memory Retrieval (Schedules & Dates)
-
-```
-You:   What is my schedule for today?
-Manvi: 📅 Your Schedule for 2026-02-27:
-
-       *Special Events:*
-       - Manu's birthday 🎉
-
-       *Reminders:*
-       - 2:00 PM: drink water
-
-You:   When is dad's birthday?
-Manvi: 🎂 Dad's birthday is saved as 1970-05-15.
-```
-
-### Address Book & Instant Messages
-
-```
-You:   Shoot a text over to Manu and tell her I'm heading home
-Manvi: ✅ Message successfully sent to Manu!
-(Manu receives: ✨ Message from Viswanath: I'm heading home)
-```
-
-### Usage Dashboard
-
-```
-You:   /limit
-Manvi: 📊 Manvi System Limits
-
-       🧠 AI BRAINS
-       • Gemini: 5 / 40
-       • Groq: 12 / 500
-       • OpenRouter: 0 / 50
-
-       🔍 SEARCH ENGINES
-       • Tavily (Monthly): 45 / 1,000
-       • Serper (Lifetime): 12 / 2,500
-
-       Status: All systems operational ✅
-```
-
-### Conversational Chat
-
-```
-You:   Tell me a joke!
-Manvi: Why do programmers prefer dark mode? Because light attracts bugs!
-       ⚡ Gemini 3 Flash (36 left)
-```
-
-### Admin-Only Commands (Owner Only)
-
-Manvi checks Caller ID before revealing global lists. If a guest asks, they are rejected.
-
-```
-You:   What active reminders do I have?
-Manvi: 🔔 Active Upcoming Reminders:
-       - [Feb 27, 4:00 PM] review Onemark Stories
-       - [Feb 28, 9:00 AM] dad: take medicine
-
-Manu:  What contacts do you have?
-Manvi: 🔒 I'm sorry Manu, but only Viswanath has clearance to access my global memory banks.
-```
+All tiers return `{ text, ai_meta }` for summary requests and a parsed JSON object with `ai_meta` for intent requests. The `ai_meta` field appears in the WhatsApp reply footer so you always know which model handled the request.
 
 ---
 
-## 🏗 Tech Stack
+## Tech Stack
 
-| Layer      | Technology                                                    |
-| ---------- | ------------------------------------------------------------- |
-| Runtime    | Node.js + Express                                             |
-| Messaging  | Meta Cloud API (WhatsApp)                                     |
-| AI Tier 1  | Google Gemini 3 Flash Preview (first ~20 req/day, free)       |
-| AI Tier 2  | Google Gemini 2.5 Flash (overflow ~20 req/day, free)          |
-| AI Tier 3  | Groq — Llama 3.3 70b (500 req/day safety cap, free)           |
-| AI Tier 4  | OpenAI GPT-4o-mini via OpenRouter (paid bulletproof fallback) |
-| Web Search | Tavily (Primary) + Serper (Fallback)                          |
-| Database   | Supabase (PostgreSQL)                                         |
-| Scheduler  | node-cron (IST timezone-aware)                                |
-| Hosting    | Render.com                                                    |
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 20+ / Express 5 |
+| Messaging | Meta WhatsApp Cloud API |
+| AI Tier 1–2 | Google Gemini (via `@google/generative-ai`) |
+| AI Tier 3 | Groq (via OpenAI-compatible SDK) |
+| AI Tier 4 | OpenRouter (via OpenAI SDK) |
+| Search Primary | Tavily — 1,000 req/month (free) |
+| Search Fallback | Serper — 2,500 req/lifetime (free) |
+| Database | Supabase (PostgreSQL) |
+| Scheduler | node-cron — IST-aware cron jobs |
+| Dashboard | Vanilla JS + Chart.js, served as static files |
+| Hosting | Render.com |
 
 ---
 
-## 🗄 Database Schema
+## Database Schema
 
-Manvi's brain runs on six tables. Run these in your Supabase SQL Editor:
+Seven tables. Run in the Supabase SQL Editor:
 
 ```sql
--- 1. Address Book — names → phone numbers
+-- Address book
 CREATE TABLE contacts (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(50) NOT NULL UNIQUE,
+  id    SERIAL PRIMARY KEY,
+  name  VARCHAR(50) NOT NULL UNIQUE,
   phone VARCHAR(20) NOT NULL
 );
 
--- 2. One-Off Reminders
+-- One-off reminders
 CREATE TABLE personal_reminders (
-  id SERIAL PRIMARY KEY,
-  phone VARCHAR(20) NOT NULL,
-  message TEXT NOT NULL,
+  id            SERIAL PRIMARY KEY,
+  phone         VARCHAR(20) NOT NULL,
+  message       TEXT NOT NULL,
   reminder_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  group_name VARCHAR(50),
-  status VARCHAR(20) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  group_name    VARCHAR(50),
+  status        VARCHAR(20) DEFAULT 'pending',
+  created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Daily Routines
--- reminder_time must be stored as HH:mm 24-hour format e.g. 09:00
+-- Daily routines
+-- reminder_time stored as HH:mm in 24-hour format
 CREATE TABLE daily_routines (
-  id SERIAL PRIMARY KEY,
-  phone VARCHAR(20) NOT NULL,
-  task_name TEXT NOT NULL,
+  id            SERIAL PRIMARY KEY,
+  phone         VARCHAR(20) NOT NULL,
+  task_name     TEXT NOT NULL,
   reminder_time TIME NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE
+  is_active     BOOLEAN DEFAULT TRUE
 );
 
--- 4. Yearly Events
+-- Yearly events (birthdays, anniversaries)
 CREATE TABLE special_events (
-  id SERIAL PRIMARY KEY,
-  phone VARCHAR(20) NOT NULL,
-  event_type VARCHAR(50),
+  id          SERIAL PRIMARY KEY,
+  phone       VARCHAR(20) NOT NULL,
+  event_type  VARCHAR(50),
   person_name VARCHAR(100),
-  event_date DATE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  event_date  DATE NOT NULL,
+  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Interaction Logs (Stealth Logger)
+-- Interaction log
 CREATE TABLE interaction_logs (
-  id SERIAL PRIMARY KEY,
-  sender_name VARCHAR(50),
+  id           SERIAL PRIMARY KEY,
+  sender_name  VARCHAR(50),
   sender_phone VARCHAR(20) NOT NULL,
-  message TEXT NOT NULL,
+  message      TEXT NOT NULL,
   bot_response TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 6. API Usage Tracker
--- Rows are created automatically by usage.js — no manual inserts needed
+-- API usage tracker (rows auto-created by usage.js)
 CREATE TABLE api_usage (
-  usage_date DATE PRIMARY KEY,
-  gemini_count INT DEFAULT 0,
-  groq_count INT DEFAULT 0,
+  usage_date      DATE PRIMARY KEY,
+  gemini_count    INT DEFAULT 0,
+  groq_count      INT DEFAULT 0,
   openrouter_count INT DEFAULT 0,
-  tavily_count INT DEFAULT 0,
-  serper_count INT DEFAULT 0
+  tavily_count    INT DEFAULT 0,
+  serper_count    INT DEFAULT 0,
+  error_count     INT DEFAULT 0
 );
 ```
 
 ---
 
-## 🚀 Setup — Get Manvi Running
+## Setup
 
-> 💡 Most external services used in this project have free tiers sufficient to run Manvi personally. The only exception is **OpenRouter**, which requires a small credit top-up (~$5) as a paid bulletproof last-resort fallback.
-
-### 1 · Clone the repo
+### 1. Clone
 
 ```bash
 git clone https://github.com/viswabnath/manvi-whatsapp-assistant.git
@@ -271,138 +148,116 @@ cd manvi-whatsapp-assistant
 npm install
 ```
 
-### 2 · Configure secrets
+### 2. Environment
 
-Create a `.env` file — **never commit this**:
+Create `.env` in the project root. Do not commit this file.
 
 ```env
 PORT=3000
-VERIFY_TOKEN=your_custom_verify_token_here
-MY_PHONE_NUMBER=your_whatsapp_number_with_country_code
+VERIFY_TOKEN=your_webhook_verify_token
+MY_PHONE_NUMBER=91xxxxxxxxxx
 
 # Meta Cloud API
 PHONE_NUMBER_ID=your_meta_phone_number_id
-ACCESS_TOKEN=your_meta_access_token_here
+ACCESS_TOKEN=your_meta_access_token
 
 # Supabase
-SUPABASE_URL=https://[your-project-id].supabase.co
-SUPABASE_KEY=your_supabase_secret_key
+SUPABASE_URL=https://[project-id].supabase.co
+SUPABASE_KEY=your_supabase_service_role_key
 
-# AI Models — 4-Tier Waterfall
-GEMINI_API_KEY=your_gemini_api_key_here         # Tier 1 & 2 — ~40 req/day combined (free)
-GROQ_API_KEY=your_groq_api_key_here              # Tier 3 — Llama 3.3, 500 req/day cap (free)
-OPENROUTER_API_KEY=your_openrouter_api_key_here  # Tier 4 — GPT-4o-mini (paid, ~$5 credit)
+# AI — 4-Tier Waterfall
+GEMINI_API_KEY=your_gemini_key          # https://aistudio.google.com
+GROQ_API_KEY=your_groq_key              # https://console.groq.com
+OPENROUTER_API_KEY=your_openrouter_key  # https://openrouter.ai
 
-# Search APIs
-TAVILY_API_KEY=your_tavily_api_key_here          # Primary Search — 1,000 req/month (free)
-SERPER_API_KEY=your_serper_api_key_here          # Backup Search — 2,500 req/lifetime (free)
+# Search
+TAVILY_API_KEY=your_tavily_key          # https://www.tavily.com
+SERPER_API_KEY=your_serper_key          # https://serper.dev
 ```
 
-### 3 · Run locally
+### 3. Run
 
 ```bash
-node src/server.js
+npm start          # production
+npm run dev        # development with nodemon
 ```
 
-Manvi will be live at `http://localhost:3000`
+---
+
+## Deploy to Render
+
+1. Create a new **Web Service** on Render and connect your GitHub repository.
+2. Set **Build Command**: `npm install`
+3. Set **Start Command**: `npm start`
+4. Add all `.env` keys under **Environment Variables**.
+5. Set your Meta webhook URL to `https://your-render-url.onrender.com/webhook`.
+6. Configure an external cron job (e.g., [cron-job.org](https://cron-job.org)) to hit `GET /api/ping` every 10 minutes to prevent the free instance from sleeping.
 
 ---
 
-## ☁️ Deploy to Render
-
-1. Connect your GitHub repo to a new Render Web Service
-2. Set **Build Command** to `npm install` and **Start Command** to `node src/server.js`
-3. Add all your `.env` variables to Render's **Environment Variables** section
-4. Copy your live Render URL, append `/webhook`, and paste it into the Meta App Dashboard
-5. Set up a free cron-job via [cron-job.org](https://cron-job.org) pointing to your root URL (`/`) to keep the free Render instance awake 24/7
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 manvi-whatsapp-assistant/
-├── src/
-│   ├── server.js           # Webhook handler, AI router & Caller ID
-│   ├── scheduler.js        # node-cron IST job runner (reminders, routines, events)
-│   ├── supabase.js         # Database connection client
-│   ├── sendMessage.js      # Meta WhatsApp API wrapper
-│   ├── gemini.js           # 4-tier waterfall: Gemini 3 → Gemini 2.5 → Groq → GPT-4o-mini
-│   ├── search.js           # Tavily + Serper search orchestration
-│   └── usage.js            # API quota tracking with self-healing row creation
-├── .env                    # 🔒 Never commit — secrets only
-├── .gitignore
+├── public/
+│   ├── index.html       # Manvi OS status dashboard
+│   ├── styles.css       # Dashboard styles
+│   └── app.js           # Dashboard frontend logic
+├── server.js            # Webhook handler, intent router, API endpoints
+├── gemini.js            # 4-tier AI waterfall
+├── scheduler.js         # node-cron IST job runner
+├── search.js            # Tavily + Serper orchestration
+├── usage.js             # API quota tracking with self-healing rows
+├── supabase.js          # Database client
+├── sendMessage.js       # Meta WhatsApp API wrapper
 ├── package.json
-└── README.md
+└── .env                 # Not committed
 ```
 
 ---
 
-## 🔐 Understanding Meta Tokens
+## Meta Token Reference
 
-Meta requires two different tokens for the WhatsApp Cloud API.
+### VERIFY_TOKEN
 
-### `VERIFY_TOKEN` — Webhook Verification
+A string you create. Set it in `.env` and in the Meta Developer Dashboard webhook configuration. Meta sends this string when verifying your endpoint — they must match exactly.
 
-When you set up the webhook in Meta's Developer Dashboard, Meta pings your server to verify ownership. You invent a random string (e.g., `onemark_manvi_2025`), put it in `.env` as `VERIFY_TOKEN`, and paste the exact same string into the Meta Dashboard.
+### ACCESS_TOKEN
 
-### `ACCESS_TOKEN` — Sending Messages
+Authorises outbound WhatsApp messages.
 
-This token authorizes Manvi to send WhatsApp messages via the Meta Cloud API.
-
-**⚠️ Important: The 24-Hour Expiry Rule**
-
-- **For Development:** Meta provides a Temporary Access Token that expires every 24 hours. You'll need to click "Refresh" in the Meta Dashboard daily and update your `.env`. If it expires, you'll see `AxiosError: 401 (Unauthorized)` in logs.
-
-- **For Production:** Create a System User in Meta Business Settings and generate a Permanent Access Token with `whatsapp_business_messaging` permissions. This never expires.
+- **Development**: Temporary token from the Meta Dashboard. Expires every 24 hours. When expired, `sendMessage.js` will throw a 401 error.
+- **Production**: Create a System User in Meta Business Settings and generate a permanent token with `whatsapp_business_messaging` permissions.
 
 ---
 
-## 🐛 Common Issues
+## Common Issues
 
-### "Webhook verification failed"
+**Webhook verification failed**
+`VERIFY_TOKEN` in `.env` does not match the value in the Meta Dashboard.
 
-Your `VERIFY_TOKEN` in `.env` doesn't match what you entered in the Meta Dashboard. They must be identical.
+**401 Unauthorized on outbound messages**
+Temporary `ACCESS_TOKEN` has expired. Refresh it in the Meta Dashboard.
 
-### "401 Unauthorized" when sending messages
+**Reminder fired at the wrong time**
+`personal_reminders.reminder_time` is a `TIMESTAMPTZ` value. Verify that `buildReminderDate()` is producing the correct `+05:30` offset ISO string on insert.
 
-Your `ACCESS_TOKEN` expired (24-hour limit for temporary tokens). Refresh it in the Meta Dashboard and update `.env`.
+**Routine not firing**
+`daily_routines.reminder_time` must be stored as `HH:mm` 24-hour format (e.g., `09:00`). The scheduler uses prefix string matching against the current IST time.
 
-### "Reminder didn't fire at the right time"
+**Event alert not received**
+The alert cron runs at 08:30 IST daily. Verify the server is alive at that time (see keep-alive cron above) and that the event date in the database is correct.
 
-`personal_reminders` uses full ISO timestamp comparison (`.lte`), not time string matching. Ensure `buildReminderDate()` in `server.js` is generating the correct `+05:30` offset timestamp when inserting.
+**Dashboard shows no data**
+Check that the `api_usage` table exists and that `error_count` column is present. If upgrading from an earlier version: `ALTER TABLE api_usage ADD COLUMN IF NOT EXISTS error_count INT DEFAULT 0;`
 
-### "Routine fired at wrong time or skipped"
-
-Ensure `reminder_time` values in `daily_routines` are stored in `HH:mm` 24-hour format (e.g., `09:00`, not `9:00 AM`). The scheduler uses exact string prefix matching against current IST time.
-
-### "Special event alert didn't fire"
-
-Special event alerts run once daily at **08:30 AM IST**. Verify your server is alive at that time and that the event's month/day in the database is correct.
-
-### Render instance sleeping
-
-Free Render instances sleep after 15 minutes of inactivity. Set up a cron-job at [cron-job.org](https://cron-job.org) to ping your root URL every 10 minutes.
-
-### "Search returned no results" or fallback triggered
-
-Tavily monthly quota (1,000 req) may be exhausted. Manvi will automatically switch to Serper and alert you via WhatsApp. Run `/limit` to check current usage.
-
-### "All AI models offline"
-
-All 4 tiers have hit their daily limits simultaneously — extremely unlikely in personal use. Wait for the daily reset or increase the `groq` or `openrouter` cap in `usage.js`.
+**All AI models offline**
+All four tiers have hit their daily limits simultaneously — extremely unlikely in single-user operation. The error is tracked in `api_usage.error_count` and visible on the dashboard.
 
 ---
 
-## 💛 Credits
+## License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
-[![Maintained by Onemark](https://img.shields.io/badge/Maintained%20by-Onemark-ff69b4)](https://onemark.digital)
+MIT — see `LICENSE`.
 
-Built with care by [Onemark](https://onemark.digital)  
-Maintained by [Viswanath Bodasakurthi](https://github.com/viswabnath)
-
----
-
-_Manvi means "Goddess of Knowledge" in Sanskrit — a fitting name for an AI second brain._
+Built by [Onemark Digital Agency](https://onemark.agency).
