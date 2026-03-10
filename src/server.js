@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const { performance } = require("perf_hooks");
 require("dotenv").config();
 
@@ -18,15 +19,15 @@ app.use(express.static("public"));
 // PAGE ROUTES
 // ---------------------------------------------------------
 app.get("/", (req, res) => {
-  res.sendFile("public/index.html", { root: "." });
+  res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 app.get("/documentation", (req, res) => {
-  res.sendFile("public/documentation.html", { root: "." });
+  res.sendFile(path.join(__dirname, "../public/documentation.html"));
 });
 
 app.get("/status", (req, res) => {
-  res.sendFile("public/status.html", { root: "." });
+  res.sendFile(path.join(__dirname, "../public/status.html"));
 });
 
 // ---------------------------------------------------------
