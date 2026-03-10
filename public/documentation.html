@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — Manvi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #25D366;
+      --green-dark: #128C7E;
+      --green-light: #DCF8C6;
+      --green-muted: #e8faf0;
+      --bg: #ffffff;
+      --bg-2: #f7f8f9;
+      --text-1: #0d1117;
+      --text-2: #4b5563;
+      --text-3: #9ca3af;
+      --border: #e5e7eb;
+      --sidebar-w: 260px;
+      --header-h: 58px;
+      --font-display: 'DM Serif Display', Georgia, serif;
+      --font-body: 'DM Sans', system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; font-size: 15px; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* HEADER */
+    .doc-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      z-index: 200;
+      gap: 1rem;
+    }
+
+    .doc-header-logo {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      color: var(--text-1);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .doc-header-logo .dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    .doc-header-divider {
+      width: 1px; height: 20px;
+      background: var(--border);
+    }
+
+    .doc-header-title {
+      font-size: 0.85rem;
+      color: var(--text-3);
+      font-weight: 400;
+    }
+
+    .doc-header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .doc-header-right a {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .doc-header-right a:hover { background: var(--bg-2); color: var(--text-1); }
+
+    .doc-header-right .github-btn {
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* LAYOUT */
+    .doc-layout {
+      display: flex;
+      margin-top: var(--header-h);
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+      padding: 1.5rem 0;
+      border-right: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+      padding: 0 1rem;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 0 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .sidebar-links { list-style: none; }
+
+    .sidebar-links a {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 0.35rem 0.5rem;
+      border-radius: 6px;
+      transition: background 0.12s, color 0.12s;
+      line-height: 1.4;
+    }
+
+    .sidebar-links a:hover { background: var(--bg-2); color: var(--text-1); }
+    .sidebar-links a.active { background: var(--green-muted); color: var(--green-dark); font-weight: 500; }
+
+    /* CONTENT */
+    .doc-content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      min-width: 0;
+      padding: 3rem 4rem 6rem;
+      max-width: 860px;
+    }
+
+    /* Typography */
+    .doc-content h1 {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      color: var(--text-1);
+    }
+
+    .doc-content h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      margin-top: 3rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-content h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .doc-content p {
+      font-size: 0.93rem;
+      color: var(--text-2);
+      line-height: 1.75;
+      margin-bottom: 1rem;
+    }
+
+    .doc-content ul, .doc-content ol {
+      padding-left: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .doc-content li {
+      font-size: 0.93rem;
+      color: var(--text-2);
+      line-height: 1.7;
+      margin-bottom: 0.25rem;
+    }
+
+    .doc-content a {
+      color: var(--green-dark);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(18,140,126,0.3);
+      transition: border-color 0.15s;
+    }
+
+    .doc-content a:hover { border-color: var(--green-dark); }
+
+    /* Lead paragraph */
+    .lead {
+      font-size: 1.05rem !important;
+      color: var(--text-2) !important;
+      line-height: 1.7 !important;
+      margin-bottom: 2rem !important;
+    }
+
+    /* Callouts */
+    .callout {
+      border-left: 3px solid var(--green);
+      background: var(--green-muted);
+      padding: 0.875rem 1.1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+    }
+
+    .callout-warn {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .callout-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--green-dark);
+      margin-bottom: 0.25rem;
+    }
+
+    .callout-warn .callout-title { color: #92400e; }
+
+    .callout p {
+      font-size: 0.875rem !important;
+      color: var(--text-2) !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.82em;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      color: #c0392b;
+    }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      position: relative;
+    }
+
+    pre code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      background: none;
+      border: none;
+      padding: 0;
+      color: #e6edf3;
+      line-height: 1.65;
+    }
+
+    .pre-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8b949e;
+      position: absolute;
+      top: 0.75rem;
+      right: 1rem;
+    }
+
+    .code-comment { color: #6a737d; }
+    .code-key { color: #79c0ff; }
+    .code-str { color: #a5d6ff; }
+    .code-kw { color: #ff7b72; }
+    .code-green { color: #3fb950; }
+
+    /* Table */
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.875rem;
+    }
+
+    .doc-table th {
+      background: var(--bg-2);
+      padding: 0.6rem 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .doc-table td code { font-size: 0.78rem; }
+
+    .badge-required {
+      background: #fee2e2;
+      color: #b91c1c;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    /* Nav between pages */
+    .doc-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      gap: 1rem;
+    }
+
+    .doc-nav a {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.875rem 1.25rem;
+      text-decoration: none !important;
+      border-bottom-color: var(--border) !important;
+      transition: border-color 0.15s, background 0.15s;
+      max-width: 260px;
+    }
+
+    .doc-nav a:hover { border-color: var(--green) !important; background: var(--green-muted); }
+    .doc-nav-dir { font-size: 0.72rem; color: var(--text-3); }
+    .doc-nav-title { font-size: 0.9rem; font-weight: 600; color: var(--text-1); }
+
+    /* Sections */
+    .doc-section { margin-bottom: 1rem; scroll-margin-top: 80px; }
+
+    /* Feature grid in docs */
+    .feat-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+
+    .feat-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+
+    .feat-item-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .feat-item-desc {
+      font-size: 0.8rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .doc-content { margin-left: 0; padding: 2rem 1.5rem 4rem; }
+      .doc-header { padding: 0 1rem; }
+      .feat-list { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="doc-header">
+    <a href="/" class="doc-header-logo">
+      <span class="dot"></span>
+      Manvi
+    </a>
+    <div class="doc-header-divider"></div>
+    <span class="doc-header-title">Documentation</span>
+    <div class="doc-header-right">
+      <a href="/">Home</a>
+      <a href="/status">Status</a>
+      <a href="https://github.com/viswabnath/whatsapp-reminder-bot" target="_blank" class="github-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Getting started</div>
+        <ul class="sidebar-links">
+          <li><a href="#introduction" class="active">Introduction</a></li>
+          <li><a href="#prerequisites">Prerequisites</a></li>
+          <li><a href="#quickstart">Quick start</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Configuration</div>
+        <ul class="sidebar-links">
+          <li><a href="#env-vars">Environment variables</a></li>
+          <li><a href="#database">Database setup</a></li>
+          <li><a href="#meta-webhook">Meta webhook</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Features</div>
+        <ul class="sidebar-links">
+          <li><a href="#reminders">Reminders</a></li>
+          <li><a href="#routines">Daily routines</a></li>
+          <li><a href="#events">Birthdays & events</a></li>
+          <li><a href="#contacts">Contacts & messaging</a></li>
+          <li><a href="#search">Web search</a></li>
+          <li><a href="#delete">Deleting tasks</a></li>
+          <li><a href="#chat">Conversational chat</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Deployment</div>
+        <ul class="sidebar-links">
+          <li><a href="#render">Deploy to Render</a></li>
+          <li><a href="#keepalive">Keep-alive setup</a></li>
+          <li><a href="#testing">Testing locally</a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Reference</div>
+        <ul class="sidebar-links">
+          <li><a href="#ai-waterfall">AI waterfall</a></li>
+          <li><a href="#api-endpoints">API endpoints</a></li>
+          <li><a href="#limits">Usage limits</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+
+    </nav>
+
+    <!-- CONTENT -->
+    <main class="doc-content">
+
+      <!-- INTRODUCTION -->
+      <div class="doc-section" id="introduction">
+        <h1>Introduction</h1>
+        <p class="lead">Manvi is a personal AI assistant that operates entirely inside WhatsApp. Send a message in plain English — she understands your intent, executes the action, and responds instantly. No app to install, no account to create beyond your existing WhatsApp.</p>
+
+        <p>Manvi is self-hosted. You run your own instance on Render, connect it to your own Meta WhatsApp Business account, and the only data that touches a third-party service is your API calls to Gemini, Groq, and your Supabase database.</p>
+
+        <div class="callout">
+          <div class="callout-title">Who this is for</div>
+          <p>Manvi is designed for a single owner — you. It is not a multi-tenant service. All personal data (reminders, contacts, events) is private to the WhatsApp number you configure as <code>MY_PHONE_NUMBER</code>.</p>
+        </div>
+
+        <h3>What Manvi can do in v1.0</h3>
+        <div class="feat-list">
+          <div class="feat-item"><div class="feat-item-title">⏰ Reminders</div><div class="feat-item-desc">One-off reminders at a specific time or on a future date.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🔁 Daily Routines</div><div class="feat-item-desc">Recurring tasks at a fixed time, every day indefinitely.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🎂 Birthdays & Events</div><div class="feat-item-desc">Save once, get reminded every year with advance alerts.</div></div>
+          <div class="feat-item"><div class="feat-item-title">📇 Contacts & Messaging</div><div class="feat-item-desc">Save contacts and forward messages by name.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🔍 Web Search</div><div class="feat-item-desc">Real-time web search via Tavily with Serper fallback.</div></div>
+          <div class="feat-item"><div class="feat-item-title">💬 Conversational AI</div><div class="feat-item-desc">4-tier AI waterfall for general questions and chat.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🗑 Delete Tasks</div><div class="feat-item-desc">Delete any reminder, routine, or event by name.</div></div>
+        </div>
+      </div>
+
+      <!-- PREREQUISITES -->
+      <div class="doc-section" id="prerequisites">
+        <h2>Prerequisites</h2>
+        <p>Before you start, create accounts on these services. All free tiers are sufficient.</p>
+
+        <table class="doc-table">
+          <thead><tr><th>Service</th><th>What it's for</th><th>Link</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Meta for Developers</strong></td><td>WhatsApp Business API — sending and receiving messages</td><td><a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a></td></tr>
+            <tr><td><strong>Supabase</strong></td><td>PostgreSQL database — stores all your reminders, contacts, events</td><td><a href="https://supabase.com" target="_blank">supabase.com</a></td></tr>
+            <tr><td><strong>Google AI Studio</strong></td><td>Gemini API key (Tier 1 &amp; 2 AI)</td><td><a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a></td></tr>
+            <tr><td><strong>Groq</strong></td><td>Llama 3 API key (Tier 3 AI fallback)</td><td><a href="https://console.groq.com" target="_blank">console.groq.com</a></td></tr>
+            <tr><td><strong>OpenRouter</strong></td><td>GPT-4o-mini (Tier 4 AI fallback — minimal paid usage)</td><td><a href="https://openrouter.ai" target="_blank">openrouter.ai</a></td></tr>
+            <tr><td><strong>Tavily</strong></td><td>Web search (primary)</td><td><a href="https://www.tavily.com" target="_blank">tavily.com</a></td></tr>
+            <tr><td><strong>Serper</strong></td><td>Web search fallback</td><td><a href="https://serper.dev" target="_blank">serper.dev</a></td></tr>
+            <tr><td><strong>Render</strong></td><td>Hosting — free web service tier</td><td><a href="https://render.com" target="_blank">render.com</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- QUICKSTART -->
+      <div class="doc-section" id="quickstart">
+        <h2>Quick start</h2>
+        <h3>1. Fork and clone the repo</h3>
+        <pre><code><span class="code-green">git clone</span> https://github.com/viswabnath/whatsapp-reminder-bot
+<span class="code-green">cd</span> manvi-whatsapp-assistant
+<span class="code-green">npm install</span></code></pre>
+
+        <h3>2. Copy the environment file</h3>
+        <pre><code><span class="code-green">cp</span> .env.example .env</code></pre>
+        <p>Open <code>.env</code> and fill in all required keys. See <a href="#env-vars">Environment variables</a> for the full list.</p>
+
+        <h3>3. Set up the database</h3>
+        <p>In your Supabase project, open the <strong>SQL Editor</strong> and run the full schema. See <a href="#database">Database setup</a>.</p>
+
+        <h3>4. Run locally</h3>
+        <pre><code><span class="code-green">npm run dev</span></code></pre>
+        <p>The server starts on <code>http://localhost:3000</code>. Your dashboard is at <code>http://localhost:3000/status</code>.</p>
+
+        <h3>5. Run the test suite</h3>
+        <pre><code><span class="code-green">node test.js</span></code></pre>
+        <p>This validates all v1.0 features against your real Supabase instance and cleans up after itself.</p>
+      </div>
+
+      <!-- ENV VARS -->
+      <div class="doc-section" id="env-vars">
+        <h2>Environment variables</h2>
+        <p>All secrets live in a <code>.env</code> file at the project root. Never commit this file.</p>
+
+        <table class="doc-table">
+          <thead><tr><th>Variable</th><th>Description</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><code>PORT</code></td><td>Port the Express server listens on. Render sets this automatically.</td><td></td></tr>
+            <tr><td><code>VERIFY_TOKEN</code></td><td>Any string you choose. Must match what you set in the Meta webhook config.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>MY_PHONE_NUMBER</code></td><td>Your WhatsApp number in international format, no <code>+</code>. E.g. <code>919876543210</code></td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>PHONE_NUMBER_ID</code></td><td>From Meta developer console → WhatsApp → API Setup.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>ACCESS_TOKEN</code></td><td>Meta permanent access token. Generate one from the Meta developer portal.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>SUPABASE_URL</code></td><td>Your Supabase project URL. Found in Project Settings → API.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>SUPABASE_KEY</code></td><td>Supabase <code>anon</code> public key. Found in Project Settings → API.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>GEMINI_API_KEY</code></td><td>From <a href="https://aistudio.google.com" target="_blank">Google AI Studio</a>. Used for Tier 1 &amp; 2 AI.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>GROQ_API_KEY</code></td><td>From <a href="https://console.groq.com" target="_blank">Groq console</a>. Used for Tier 3 AI fallback.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>OPENROUTER_API_KEY</code></td><td>From <a href="https://openrouter.ai" target="_blank">OpenRouter</a>. Used for Tier 4 AI fallback.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>TAVILY_API_KEY</code></td><td>From <a href="https://www.tavily.com" target="_blank">Tavily</a>. Primary web search provider.</td><td><span class="badge-required">required</span></td></tr>
+            <tr><td><code>SERPER_API_KEY</code></td><td>From <a href="https://serper.dev" target="_blank">Serper.dev</a>. Web search fallback.</td><td><span class="badge-required">required</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DATABASE -->
+      <div class="doc-section" id="database">
+        <h2>Database setup</h2>
+        <p>Run this SQL in the Supabase SQL Editor once. It creates all 6 tables from scratch.</p>
+
+        <pre><span class="pre-label">SQL</span><code><span class="code-comment">-- Contacts address book</span>
+<span class="code-kw">CREATE TABLE</span> contacts (
+  id    SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  name  VARCHAR(50) <span class="code-kw">NOT NULL UNIQUE</span>,
+  phone VARCHAR(20) <span class="code-kw">NOT NULL</span>
+);
+
+<span class="code-comment">-- One-off reminders</span>
+<span class="code-kw">CREATE TABLE</span> personal_reminders (
+  id            SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  phone         VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  message       TEXT <span class="code-kw">NOT NULL</span>,
+  reminder_time TIMESTAMP WITH TIME ZONE <span class="code-kw">NOT NULL</span>,
+  group_name    VARCHAR(50),
+  status        VARCHAR(20) <span class="code-kw">DEFAULT</span> <span class="code-str">'pending'</span>,
+  created_at    TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
+);
+
+<span class="code-comment">-- Daily routines (time only, no date)</span>
+<span class="code-kw">CREATE TABLE</span> daily_routines (
+  id            SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  phone         VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  task_name     TEXT <span class="code-kw">NOT NULL</span>,
+  reminder_time TIME <span class="code-kw">NOT NULL</span>,
+  is_active     BOOLEAN <span class="code-kw">DEFAULT TRUE</span>
+);
+
+<span class="code-comment">-- Birthdays and special events</span>
+<span class="code-kw">CREATE TABLE</span> special_events (
+  id          SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  phone       VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  event_type  VARCHAR(50),
+  person_name VARCHAR(100),
+  event_date  DATE <span class="code-kw">NOT NULL</span>,
+  created_at  TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
+);
+
+<span class="code-comment">-- All incoming messages and bot responses</span>
+<span class="code-kw">CREATE TABLE</span> interaction_logs (
+  id           SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  sender_name  VARCHAR(50),
+  sender_phone VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  message      TEXT <span class="code-kw">NOT NULL</span>,
+  bot_response TEXT,
+  created_at   TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
+);
+
+<span class="code-comment">-- Daily API usage tracking</span>
+<span class="code-kw">CREATE TABLE</span> api_usage (
+  usage_date       DATE <span class="code-kw">PRIMARY KEY</span>,
+  gemini_count     INT <span class="code-kw">DEFAULT</span> 0,
+  groq_count       INT <span class="code-kw">DEFAULT</span> 0,
+  openrouter_count INT <span class="code-kw">DEFAULT</span> 0,
+  tavily_count     INT <span class="code-kw">DEFAULT</span> 0,
+  serper_count     INT <span class="code-kw">DEFAULT</span> 0,
+  error_count      INT <span class="code-kw">DEFAULT</span> 0
+);</code></pre>
+      </div>
+
+      <!-- META WEBHOOK -->
+      <div class="doc-section" id="meta-webhook">
+        <h2>Meta webhook setup</h2>
+        <p>In the Meta developer portal, go to your app → WhatsApp → Configuration.</p>
+        <ol>
+          <li>Set <strong>Webhook URL</strong> to <code>https://your-app.onrender.com/webhook</code></li>
+          <li>Set <strong>Verify token</strong> to the same value as your <code>VERIFY_TOKEN</code> env var</li>
+          <li>Subscribe to the <strong>messages</strong> webhook field</li>
+          <li>Add your phone number as a test recipient in the API Setup section</li>
+        </ol>
+        <div class="callout-warn callout">
+          <div class="callout-title">Permanent access token</div>
+          <p>The default access token from Meta expires in 24 hours. Generate a permanent token via the <strong>System User</strong> flow in Meta Business Manager. Use that token as <code>ACCESS_TOKEN</code>.</p>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="doc-section" id="reminders">
+        <h2>Reminders</h2>
+        <p>Set a one-off reminder in plain English. Manvi extracts the time and optional date, saves it with a full timezone-aware timestamp, and fires it via WhatsApp at the right moment.</p>
+        <h3>Example messages</h3>
+        <pre><code>Remind me to call the bank at 3 PM
+Remind me in 20 minutes to check the oven
+5th April is Ravi's interview, remind me at 9 AM on that day</code></pre>
+        <h3>How time is resolved</h3>
+        <ul>
+          <li>Relative times ("in 20 minutes") — the AI calculates the exact IST timestamp from the current time</li>
+          <li>Future dates with time ("5th April at 9 AM") — stored as a full TIMESTAMPTZ, fires once and is marked complete</li>
+          <li>Time only with no date ("at 3 PM") — defaults to today, rolls to tomorrow if the time has already passed</li>
+        </ul>
+        <div class="callout">
+          <div class="callout-title">Timezone</div>
+          <p>All times are IST (Asia/Kolkata, UTC+5:30). The scheduler runs every minute and compares against the current IST timestamp.</p>
+        </div>
+      </div>
+
+      <div class="doc-section" id="routines">
+        <h2>Daily routines</h2>
+        <p>Routines repeat at the same time every day with no end date. Only a fixed daily time is supported — not intervals like "every 5 minutes".</p>
+        <pre><code>Remind me to drink water every day at 10 AM
+Set a daily reminder to check email at 9 AM</code></pre>
+        <p>To stop a routine, delete it by name: <em>"Delete drink water routine"</em></p>
+      </div>
+
+      <div class="doc-section" id="events">
+        <h2>Birthdays &amp; events</h2>
+        <p>Special events are saved with a date and repeat every year. The year in the date is irrelevant after the first save — Manvi only matches day and month.</p>
+        <pre><code>22nd May is Manu's birthday
+Save Simhadri's farewell on 3rd April</code></pre>
+        <p>Manvi sends two alerts every year:</p>
+        <ul>
+          <li>Day before at 8:30 AM IST</li>
+          <li>The day itself at 8:30 AM IST</li>
+        </ul>
+      </div>
+
+      <div class="doc-section" id="contacts">
+        <h2>Contacts &amp; messaging</h2>
+        <p>Save a contact once. After that, address them by name in any instruction.</p>
+        <pre><code><span class="code-comment"># Save a contact</span>
+Save Manu as 919876543210
+Add Ravi to contacts, number 919988776655
+
+<span class="code-comment"># Send a message by name</span>
+Tell Manu I'll be 10 minutes late
+Message Ravi and say the meeting is at 7</code></pre>
+        <p>Phone numbers must include the country code with no <code>+</code> or spaces. Manvi strips all non-digit characters automatically before saving.</p>
+      </div>
+
+      <div class="doc-section" id="search">
+        <h2>Web search</h2>
+        <p>Manvi searches the web and returns a clean plain-text summary. No links, no markdown — just the answer.</p>
+        <pre><code>Who won the IPL last season?
+What's the weather in Hyderabad today?
+Latest news about OpenAI</code></pre>
+        <p>Primary provider is Tavily (1,000 req/month free). If Tavily is exhausted, Serper is used automatically (2,500 req lifetime free). You are alerted at 50, 10, and 0 remaining on each.</p>
+      </div>
+
+      <div class="doc-section" id="delete">
+        <h2>Deleting tasks</h2>
+        <p>Delete any reminder, routine, or event by describing it. You do not need to use the exact saved name.</p>
+        <pre><code>Delete the reminder to call the bank
+Delete drink water routine
+Remove Manu's birthday</code></pre>
+        <p>Manvi searches reminders first, then routines, then events. The first match found is deleted. If nothing matches, it says so.</p>
+      </div>
+
+      <div class="doc-section" id="chat">
+        <h2>Conversational chat</h2>
+        <p>For anything that is not a task, Manvi responds directly using the AI waterfall. Ask questions, request explanations, or just talk.</p>
+        <pre><code>What do you have saved for me?
+Explain machine learning simply
+Tell me a joke</code></pre>
+      </div>
+
+      <!-- DEPLOYMENT -->
+      <div class="doc-section" id="render">
+        <h2>Deploy to Render</h2>
+        <ol>
+          <li>Push your repo (with a filled <code>.env.example</code> but no <code>.env</code>) to GitHub</li>
+          <li>In Render, create a new <strong>Web Service</strong> → connect your GitHub repo</li>
+          <li>Set <strong>Build command</strong>: <code>npm install</code></li>
+          <li>Set <strong>Start command</strong>: <code>npm start</code></li>
+          <li>Add all environment variables in the Render <strong>Environment</strong> tab</li>
+          <li>Deploy. Your URL will be <code>https://your-app.onrender.com</code></li>
+        </ol>
+        <div class="callout">
+          <div class="callout-title">Free tier sleep</div>
+          <p>Render free instances sleep after 15 minutes of inactivity. Set up a keep-alive ping — see below.</p>
+        </div>
+      </div>
+
+      <div class="doc-section" id="keepalive">
+        <h2>Keep-alive setup</h2>
+        <p>Go to <a href="https://cron-job.org" target="_blank">cron-job.org</a>, create a free account, and add a new cron job:</p>
+        <ul>
+          <li><strong>URL:</strong> <code>https://your-app.onrender.com/api/ping</code></li>
+          <li><strong>Schedule:</strong> every 10 minutes</li>
+          <li><strong>Method:</strong> GET</li>
+        </ul>
+        <p>This keeps your Render instance awake so the scheduler never misses a reminder.</p>
+      </div>
+
+      <div class="doc-section" id="testing">
+        <h2>Testing locally</h2>
+        <p>The test suite runs against your real Supabase instance, inserts test data, verifies it, and cleans up after every run.</p>
+        <pre><code>node test.js</code></pre>
+        <p>Expected output: all tests pass with a summary table. If any test fails, the error is printed with a clear label so you can trace it to the relevant handler in <code>src/server.js</code>.</p>
+        <div class="callout-warn callout">
+          <div class="callout-title">Before testing</div>
+          <p>Make sure your <code>.env</code> file is fully populated and the database schema has been created. The test script will fail immediately if Supabase cannot connect.</p>
+        </div>
+      </div>
+
+      <!-- REFERENCE -->
+      <div class="doc-section" id="ai-waterfall">
+        <h2>AI waterfall</h2>
+        <p>Every message goes through a 4-tier AI chain. If a tier is exhausted or fails, the next tier is tried automatically.</p>
+        <table class="doc-table">
+          <thead><tr><th>Tier</th><th>Model</th><th>Daily limit</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Gemini 3 Flash Preview</td><td>~20 req/day (shared)</td><td>Free</td></tr>
+            <tr><td>2</td><td>Gemini 2.5 Flash</td><td>~20 req/day (shared with Tier 1)</td><td>Free</td></tr>
+            <tr><td>3</td><td>Groq Llama 3.3 70B</td><td>3,000 req/day (safety cap)</td><td>Free</td></tr>
+            <tr><td>4</td><td>OpenRouter GPT-4o-mini</td><td>50 req/day (safety cap)</td><td>~$5 credit</td></tr>
+          </tbody>
+        </table>
+        <p>The model name and remaining quota is appended to every bot response so you always know which tier was used.</p>
+      </div>
+
+      <div class="doc-section" id="api-endpoints">
+        <h2>API endpoints</h2>
+        <table class="doc-table">
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET</code></td><td><code>/</code></td><td>Landing page</td></tr>
+            <tr><td><code>GET</code></td><td><code>/documentation</code></td><td>This documentation page</td></tr>
+            <tr><td><code>GET</code></td><td><code>/status</code></td><td>Manvi OS — live system dashboard</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/ping</code></td><td>Keep-alive endpoint. Returns <code>{status, latency_ms, timestamp}</code></td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/status</code></td><td>Dashboard data — usage stats, uptime, limits, jobs, version</td></tr>
+            <tr><td><code>GET</code></td><td><code>/webhook</code></td><td>Meta webhook verification handshake</td></tr>
+            <tr><td><code>POST</code></td><td><code>/webhook</code></td><td>Incoming WhatsApp messages — the main message handler</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-section" id="limits">
+        <h2>Usage limits</h2>
+        <table class="doc-table">
+          <thead><tr><th>Service</th><th>Limit</th><th>Reset</th></tr></thead>
+          <tbody>
+            <tr><td>Gemini (Tier 1 + 2 combined)</td><td>40 req/day</td><td>Midnight IST</td></tr>
+            <tr><td>Groq</td><td>3,000 req/day (safety cap)</td><td>Midnight UTC</td></tr>
+            <tr><td>OpenRouter</td><td>50 req/day (safety cap)</td><td>Midnight UTC</td></tr>
+            <tr><td>Tavily</td><td>1,000 req/month</td><td>Monthly</td></tr>
+            <tr><td>Serper</td><td>2,500 req lifetime</td><td>Never resets</td></tr>
+          </tbody>
+        </table>
+        <p>Manvi alerts you on WhatsApp when any search service hits 50, 10, or 0 remaining credits.</p>
+      </div>
+
+      <div class="doc-section" id="troubleshooting">
+        <h2>Troubleshooting</h2>
+        <h3>Server won't start — "supabaseUrl is required"</h3>
+        <p>You are running the server from inside the <code>src/</code> directory. <code>dotenv</code> looks for <code>.env</code> relative to the working directory, not the file. Always run from the project root:</p>
+        <pre><code>npm run dev       <span class="code-comment"># correct</span>
+cd src && node server.js   <span class="code-comment"># wrong — .env not found</span></code></pre>
+
+        <h3>Cannot find module 'server.js'</h3>
+        <p>Your <code>package.json</code> scripts point to <code>src/server.js</code>. Don't run <code>node server.js</code> from the root — use <code>npm start</code> or <code>npm run dev</code>.</p>
+
+        <h3>"Contact not found in address book"</h3>
+        <p>The contact does not exist in the <code>contacts</code> table. Save them first: <em>"Save Manu as 919876543210"</em></p>
+
+        <h3>Reminders firing on wrong date</h3>
+        <p>Make sure you specify both a date and a time. If you only specify a time, Manvi defaults to today (rolling to tomorrow if passed). For future dates, say the date explicitly.</p>
+
+        <h3>Dashboard shows no data</h3>
+        <p>The <code>api_usage</code> table starts empty. It populates as you use the bot. The first row is created automatically on the first API call of the day.</p>
+      </div>
+
+      <div class="doc-nav">
+        <div></div>
+        <a href="/status" style="text-align:right">
+          <span class="doc-nav-dir">Next</span>
+          <span class="doc-nav-title">System status →</span>
+        </a>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // Active sidebar link on scroll
+    const sections = document.querySelectorAll('.doc-section[id]');
+    const links = document.querySelectorAll('.sidebar-links a');
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const active = document.querySelector(`.sidebar-links a[href="#${e.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+
+    sections.forEach(s => io.observe(s));
+  </script>
+</body>
+</html>

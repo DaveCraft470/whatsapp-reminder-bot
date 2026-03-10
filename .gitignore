@@ -15,6 +15,5 @@ npm-debug.log*
 # These contain owner-specific branding and are served from your Render instance only.
 # Cloners should build their own landing page and docs.
 public/index.html
-public/documentation.html
 test-ai.js
 test-whatsapp.js
