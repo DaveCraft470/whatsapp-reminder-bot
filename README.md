@@ -10,8 +10,8 @@ A personal AI assistant that works entirely inside WhatsApp. Set reminders, mana
 ## Quick start
 
 ```bash
-git clone https://github.com/viswanathbodasakurthi/manvi-whatsapp-assistant
-cd manvi-whatsapp-assistant
+git clone https://github.com/viswabnath/whatsapp-reminder-bot
+cd whatsapp-reminder-bot
 npm install
 cp .env.example .env   # fill in your keys
 npm run dev
