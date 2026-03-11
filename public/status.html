@@ -208,6 +208,21 @@
     .status-dot.warn { background: var(--amber); }
     .status-dot.err { background: var(--rose); }
 
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--teal); }
+      50% { opacity: 0.5; box-shadow: 0 0 10px var(--teal); }
+    }
+    .status-dot.pulse { animation: pulse 2s ease-in-out infinite; }
+
+    .status-badge.ok {
+      border-color: rgba(63, 185, 80, 0.4);
+      color: var(--teal);
+    }
+    .status-badge.error {
+      border-color: rgba(248, 81, 73, 0.4);
+      color: var(--rose);
+    }
+
     /* SECTION LABEL */
     .section-label {
       font-family: var(--mono);

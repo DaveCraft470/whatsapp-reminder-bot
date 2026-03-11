@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const statusDot = document.getElementById("statusDot");
     const statusText = document.getElementById("statusText");
     badge.className = `status-badge ${hasErrors ? "error" : "ok"}`;
-    statusDot.className = `status-dot ${hasErrors ? "" : "pulse"}`;
+    statusDot.className = `status-dot ${hasErrors ? "err" : "ok pulse"}`;
     statusText.textContent = hasErrors ? "Degraded" : "Operational";
 
     // Dynamic Uptime Counter

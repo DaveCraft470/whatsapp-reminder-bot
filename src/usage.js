@@ -80,11 +80,9 @@ async function getUsage() {
     .select('created_at')
     .gte('created_at', twentyFourHoursAgo);
 
-  const { data: recentErrors } = await supabase
-    .from('system_logs')
-    .select('created_at')
-    .gte('created_at', twentyFourHoursAgo)
-    .ilike('status', '%Fail%');
+  // system_logs table does not exist — derive hourly errors from api_usage error_count
+  // This is an approximation: errors are spread evenly across tracked hours for the day
+  const recentErrors = null;
 
   const hourlySuccess = new Array(24).fill(0);
   const hourlyErrors = new Array(24).fill(0);
