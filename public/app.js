@@ -8,8 +8,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     themeBtn.textContent = isLight ? "Dark" : "Light";
 
     if (window.dashboardChart) {
-      const textColor = getComputedStyle(document.body).getPropertyValue("--text-2").trim();
-      const gridColor = getComputedStyle(document.body).getPropertyValue("--border").trim();
+      const textColor = getComputedStyle(document.body)
+        .getPropertyValue("--text-2")
+        .trim();
+      const gridColor = getComputedStyle(document.body)
+        .getPropertyValue("--border")
+        .trim();
       window.dashboardChart.options.scales.x.ticks.color = textColor;
       window.dashboardChart.options.scales.y.ticks.color = textColor;
       window.dashboardChart.options.scales.y.grid.color = gridColor;
@@ -66,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Dynamic Uptime Counter
     let { days, hours, minutes, seconds } = uptime;
-    let totalSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+    let totalSeconds = days * 86400 + hours * 3600 + minutes * 60 + seconds;
     const uptimeEl = document.getElementById("uptimeText");
 
     const updateUptimeDisplay = () => {
@@ -77,14 +81,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       uptimeEl.textContent = `Uptime: ${d}d ${h}h ${m}m ${s}s`;
     };
 
-    updateUptimeDisplay(); 
+    updateUptimeDisplay();
     setInterval(() => {
       totalSeconds++;
       updateUptimeDisplay();
     }, 1000);
 
     // Sync time
-    document.getElementById("syncTime").textContent = `Synced: ${new Date().toLocaleTimeString()}`;
+    document.getElementById("syncTime").textContent =
+      `Synced: ${new Date().toLocaleTimeString()}`;
 
     // AI status label
     const aiStatusEl = document.getElementById("aiStatusText");
@@ -106,45 +111,47 @@ document.addEventListener("DOMContentLoaded", async () => {
       const block = document.createElement("div");
       block.className = `uptime-block ${day.error_count > 0 ? "error" : "ok"}`;
       const date = new Date(day.usage_date).toLocaleDateString("en-US", {
-        weekday: "long", year: "numeric", month: "long", day: "numeric",
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
       block.title = `${date} — Errors: ${day.error_count}`;
       vizContainer.appendChild(block);
     });
 
-   // --- API TIER TOGGLE LOGIC ---
+    // --- API TIER TOGGLE LOGIC ---
     const stats24H = {
-      gemini: stats.gemini, 
-      groq: stats.groq, 
-      openrouter: stats.openrouter, 
-      tavily: stats.tavilyToday, 
-      serper: stats.serperToday
+      gemini: stats.gemini,
+      groq: stats.groq,
+      openrouter: stats.openrouter,
+      tavily: stats.tavilyToday,
+      serper: stats.serperToday,
     };
-    
+
     const statsAllTime = stats.allTimeStats || {
-      gemini: 0, groq: 0, openrouter: 0, tavily: 0, serper: 0
+      gemini: 0,
+      groq: 0,
+      openrouter: 0,
+      tavily: 0,
+      serper: 0,
     };
 
     // Added an 'isAllTime' parameter to handle the UI swap
     function updateMetricCards(dataObj, isAllTime = false) {
-      // 1. Update Numbers
+      // Update counts
       animateCount(document.getElementById("geminiCount"), dataObj.gemini);
-      animateCount(document.getElementById("groqCount"),   dataObj.groq);
-      animateCount(document.getElementById("orCount"),     dataObj.openrouter);
+      animateCount(document.getElementById("groqCount"), dataObj.groq);
+      animateCount(document.getElementById("orCount"), dataObj.openrouter);
       animateCount(document.getElementById("tavilyCount"), dataObj.tavily);
       animateCount(document.getElementById("serperCount"), dataObj.serper);
 
-      // 2. Update Limit Text (Serper is the only true lifetime cap)
-      document.getElementById("geminiLimit").textContent = isAllTime ? "∞" : limits.gemini;
-      document.getElementById("groqLimit").textContent   = isAllTime ? "∞" : limits.groq;
-      document.getElementById("orLimit").textContent     = isAllTime ? "∞" : limits.openrouter;
-      document.getElementById("tavilyLimit").textContent =  limits.tavily;
-      document.getElementById("serperLimit").textContent = limits.serper; 
-
-      // 3. Update Progress Bars
+      // Update progress bars
       const gemPct = isAllTime ? 100 : (dataObj.gemini / limits.gemini) * 100;
       const groqPct = isAllTime ? 100 : (dataObj.groq / limits.groq) * 100;
-      const orPct = isAllTime ? 100 : (dataObj.openrouter / limits.openrouter) * 100;
+      const orPct = isAllTime
+        ? 100
+        : (dataObj.openrouter / limits.openrouter) * 100;
       const tavPct = isAllTime ? 100 : (dataObj.tavily / limits.tavily) * 100;
       const serpPct = (dataObj.serper / limits.serper) * 100; // Serper calculation never changes
 
@@ -164,20 +171,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (btnTier24h && btnTierAll) {
       btnTier24h.addEventListener("click", () => {
-        btnTier24h.style.background = "var(--bg-2)"; btnTier24h.style.color = "var(--text-1)";
-        btnTierAll.style.background = "transparent"; btnTierAll.style.color = "var(--text-2)";
+        btnTier24h.style.background = "var(--bg-2)";
+        btnTier24h.style.color = "var(--text-1)";
+        btnTierAll.style.background = "transparent";
+        btnTierAll.style.color = "var(--text-2)";
         updateMetricCards(stats24H, false);
       });
 
       btnTierAll.addEventListener("click", () => {
-        btnTierAll.style.background = "var(--bg-2)"; btnTierAll.style.color = "var(--text-1)";
-        btnTier24h.style.background = "transparent"; btnTier24h.style.color = "var(--text-2)";
+        btnTierAll.style.background = "var(--bg-2)";
+        btnTierAll.style.color = "var(--text-1)";
+        btnTier24h.style.background = "transparent";
+        btnTier24h.style.color = "var(--text-2)";
         updateMetricCards(statsAllTime, true);
       });
     }
 
     // --- CHART DATA PREPARATION ---
-    const labels7D = stats.historyLabels.map(date => new Date(date).toLocaleDateString("en-US", { weekday: "short" }));
+    const labels7D = stats.historyLabels.map((date) =>
+      new Date(date).toLocaleDateString("en-US", { weekday: "short" }),
+    );
     const data7D_success = stats.historyData;
     const data7D_errors = stats.errorData;
 
@@ -185,15 +198,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     for (let i = 23; i >= 0; i--) {
       const d = new Date();
       d.setHours(d.getHours() - i);
-      labels24H.push(d.toLocaleString('en-US', { hour: 'numeric', hour12: true }));
+      labels24H.push(
+        d.toLocaleString("en-US", { hour: "numeric", hour12: true }),
+      );
     }
     const data24H_success = stats.hourlySuccess;
     const data24H_errors = stats.hourlyErrors;
-    
+
     // --- INITIALIZE CHART ---
     const ctx = document.getElementById("usageChart").getContext("2d");
-    const textColor = getComputedStyle(document.body).getPropertyValue("--text-2").trim();
-    const gridColor = getComputedStyle(document.body).getPropertyValue("--border").trim();
+    const textColor = getComputedStyle(document.body)
+      .getPropertyValue("--text-2")
+      .trim();
+    const gridColor = getComputedStyle(document.body)
+      .getPropertyValue("--border")
+      .trim();
 
     window.dashboardChart = new Chart(ctx, {
       type: "line",
@@ -205,14 +224,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             data: data24H_success,
             borderColor: "#3b82f6",
             backgroundColor: "rgba(59, 130, 246, 0.06)",
-            fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: "#3b82f6", borderWidth: 1.5,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: "#3b82f6",
+            borderWidth: 1.5,
           },
           {
             label: "Failures",
             data: data24H_errors,
             borderColor: "#f43f5e",
             borderDash: [4, 4],
-            tension: 0.2, pointRadius: 2, borderWidth: 1, fill: false,
+            tension: 0.2,
+            pointRadius: 2,
+            borderWidth: 1,
+            fill: false,
           },
         ],
       },
@@ -225,24 +251,33 @@ document.addEventListener("DOMContentLoaded", async () => {
             backgroundColor: "rgba(13, 17, 23, 0.92)",
             titleFont: { family: "IBM Plex Mono", size: 11 },
             bodyFont: { family: "IBM Plex Mono", size: 11 },
-            borderColor: "#1e2a38", borderWidth: 1, padding: 10,
+            borderColor: "#1e2a38",
+            borderWidth: 1,
+            padding: 10,
             callbacks: {
               title: (context) => {
                 const label = context[0].label;
                 return label.includes("M") ? `Time: ${label}` : `Day: ${label}`;
-              }
-            }
+              },
+            },
           },
         },
         scales: {
           y: {
             beginAtZero: true,
             grid: { color: gridColor, lineWidth: 0.5 },
-            ticks: { color: textColor, font: { family: "IBM Plex Mono", size: 10 } },
+            ticks: {
+              color: textColor,
+              font: { family: "IBM Plex Mono", size: 10 },
+            },
           },
           x: {
             grid: { display: false },
-            ticks: { color: textColor, font: { family: "IBM Plex Mono", size: 10 }, maxTicksLimit: 12 },
+            ticks: {
+              color: textColor,
+              font: { family: "IBM Plex Mono", size: 10 },
+              maxTicksLimit: 12,
+            },
           },
         },
       },
@@ -255,14 +290,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btn24h && btn7d) {
       function updateChart(view) {
         if (view === "24h") {
-          btn24h.style.background = "var(--bg-2)"; btn24h.style.color = "var(--text-1)";
-          btn7d.style.background = "transparent"; btn7d.style.color = "var(--text-2)";
+          btn24h.style.background = "var(--bg-2)";
+          btn24h.style.color = "var(--text-1)";
+          btn7d.style.background = "transparent";
+          btn7d.style.color = "var(--text-2)";
           window.dashboardChart.data.labels = labels24H;
           window.dashboardChart.data.datasets[0].data = data24H_success;
           window.dashboardChart.data.datasets[1].data = data24H_errors;
         } else {
-          btn7d.style.background = "var(--bg-2)"; btn7d.style.color = "var(--text-1)";
-          btn24h.style.background = "transparent"; btn24h.style.color = "var(--text-2)";
+          btn7d.style.background = "var(--bg-2)";
+          btn7d.style.color = "var(--text-1)";
+          btn24h.style.background = "transparent";
+          btn24h.style.color = "var(--text-2)";
           window.dashboardChart.data.labels = labels7D;
           window.dashboardChart.data.datasets[0].data = data7D_success;
           window.dashboardChart.data.datasets[1].data = data7D_errors;
@@ -290,9 +329,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                <i>${job.layman}</i>
             </div>
           </td>
-          <td class="job-last-run">${job.lastFired
-            ? `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--teal)">${job.lastFired}</span>`
-            : `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-3)">—</span>`
+          <td class="job-last-run">${
+            job.lastFired
+              ? `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--teal)">${job.lastFired}</span>`
+              : `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-3)">—</span>`
           }</td>
           <td><span class="job-status ${job.status}">${job.status}</span></td>
         `;
@@ -303,13 +343,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     document.body.classList.add("loaded");
-
   } catch (err) {
     console.error("[dashboard] Initialisation failed:", err);
     const badge = document.getElementById("systemBadge");
-    if(badge) badge.className = "status-badge error";
+    if (badge) badge.className = "status-badge error";
     const statusText = document.getElementById("statusText");
-    if(statusText) statusText.textContent = "Error";
+    if (statusText) statusText.textContent = "Error";
     document.body.classList.add("loaded");
   }
 });

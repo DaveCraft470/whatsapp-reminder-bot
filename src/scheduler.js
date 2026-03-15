@@ -15,9 +15,18 @@ function getISTComponents() {
 
   const [{ value: day }, , { value: month }] = formatter.formatToParts(now);
 
+  // dayOfWeek in IST — 0=Sunday, 1=Monday ... 6=Saturday
+  const dowFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+  });
+  const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dowStr = dowFormatter.format(now).slice(0, 3);
+
   return {
     day: parseInt(day),
     month: parseInt(month),
+    dayOfWeek: dowMap[dowStr],
     // YYYY-MM-DD in IST — used as last_fired_date key
     todayIST: new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Kolkata",
@@ -32,12 +41,12 @@ function getISTComponents() {
   };
 }
 
-// Guard flags — prevent overlapping cron executions that cause node-cron WARN flood
+// Guard flags — prevent overlapping cron executions
 let reminderRunning = false;
 let routineRunning = false;
+let recurringRunning = false;
 
 // CRON 1: One-off reminder dispatch — runs every minute
-// Uses .lte so overdue reminders are never missed even if server restarts late
 cron.schedule("* * * * *", async () => {
   if (reminderRunning) return;
   reminderRunning = true;
@@ -68,14 +77,7 @@ cron.schedule("* * * * *", async () => {
 });
 
 // CRON 2: Daily routine dispatch — runs every minute
-//
-// OLD APPROACH (broken): exact minute match via LIKE "09:00%"
-//   — if server was sleeping at 9:00 AM, routine is silently missed for the day
-//
-// NEW APPROACH: fire if scheduled time has passed today AND not yet fired today
-//   — uses last_fired_date column (DATE) to track per-day firing
-//   — server restart at 10:30 AM will still fire a 9:00 AM routine
-//   — requires: ALTER TABLE daily_routines ADD COLUMN last_fired_date DATE;
+// Fires if scheduled time has passed today AND not yet fired today (last_fired_date guard)
 cron.schedule("* * * * *", async () => {
   if (routineRunning) return;
   routineRunning = true;
@@ -83,7 +85,6 @@ cron.schedule("* * * * *", async () => {
   try {
     const { timeStr, todayIST } = getISTComponents();
 
-    // Fetch all active routines not yet fired today
     const { data: routines } = await supabase
       .from("daily_routines")
       .select("*")
@@ -93,11 +94,8 @@ cron.schedule("* * * * *", async () => {
     if (!routines || routines.length === 0) return;
 
     for (const routine of routines) {
-      // routine.reminder_time is stored as HH:MM:SS by Postgres
-      // Compare HH:MM prefix against current IST HH:mm
-      const routineHHMM = routine.reminder_time.slice(0, 5); // "09:00"
+      const routineHHMM = routine.reminder_time.slice(0, 5);
 
-      // Only fire if scheduled time has passed (or is now) — prevents early firing
       if (timeStr >= routineHHMM) {
         await sendWhatsAppMessage(routine.phone, `Daily Routine: ${routine.task_name}`);
         await supabase
@@ -114,7 +112,6 @@ cron.schedule("* * * * *", async () => {
 });
 
 // CRON 3: Special event alerts — runs at 08:30 IST (03:00 UTC)
-// Runs once daily so no guard flag needed
 cron.schedule("0 3 * * *", async () => {
   try {
     const { day: todayDay, month: todayMonth } = getISTComponents();
@@ -149,5 +146,86 @@ cron.schedule("0 3 * * *", async () => {
     }
   } catch (err) {
     console.error("[scheduler] Events cron error:", err.message);
+  }
+});
+
+// CRON 4: Recurring tasks dispatch — runs every minute
+//
+// Handles weekly and monthly recurring tasks from the recurring_tasks table.
+//
+// Weekly logic:
+//   Fire if today's IST dayOfWeek matches task.day_of_week
+//   AND current IST time >= task.reminder_time
+//   AND not yet fired today (last_fired_date guard)
+//
+// Monthly logic:
+//   Fire if today's IST day-of-month matches task.day_of_month
+//   AND current IST time >= task.reminder_time
+//   AND not yet fired today (last_fired_date guard)
+//
+// Schema required:
+//   CREATE TABLE recurring_tasks (
+//     id          BIGSERIAL PRIMARY KEY,
+//     phone       TEXT NOT NULL,
+//     task_name   TEXT NOT NULL,
+//     reminder_time TIME NOT NULL,         -- HH:MM — same as daily_routines
+//     recurrence_type TEXT NOT NULL,       -- 'weekly' | 'monthly'
+//     day_of_week  INTEGER,               -- 0=Sun … 6=Sat, NULL for monthly
+//     day_of_month INTEGER,               -- 1-31, NULL for weekly
+//     is_active   BOOLEAN DEFAULT TRUE,
+//     last_fired_date DATE,               -- prevents double-fire on same day
+//     created_at  TIMESTAMPTZ DEFAULT NOW()
+//   );
+cron.schedule("* * * * *", async () => {
+  if (recurringRunning) return;
+  recurringRunning = true;
+
+  try {
+    const { day, dayOfWeek, timeStr, todayIST } = getISTComponents();
+
+    // Fetch all active recurring tasks not yet fired today
+    const { data: tasks } = await supabase
+      .from("recurring_tasks")
+      .select("*")
+      .eq("is_active", true)
+      .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`);
+
+    if (!tasks || tasks.length === 0) return;
+
+    for (const task of tasks) {
+      const taskHHMM = task.reminder_time.slice(0, 5);
+
+      // Time gate — don't fire before scheduled time
+      if (timeStr < taskHHMM) continue;
+
+      let shouldFire = false;
+
+      if (task.recurrence_type === "weekly") {
+        shouldFire = task.day_of_week === dayOfWeek;
+      } else if (task.recurrence_type === "monthly") {
+        const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const tomorrowIST = new Date(nowIST);
+        tomorrowIST.setDate(tomorrowIST.getDate() + 1);
+        const isLastDayOfMonth = tomorrowIST.getDate() === 1;
+
+        if (isLastDayOfMonth && task.day_of_month > day) {
+          shouldFire = true;
+        } else {
+          shouldFire = task.day_of_month === day;
+        }
+      }
+
+      if (shouldFire) {
+        await sendWhatsAppMessage(task.phone, `Reminder: ${task.task_name}`);
+        await supabase
+          .from("recurring_tasks")
+          .update({ last_fired_date: todayIST })
+          .eq("id", task.id);
+      }
+    }
+  } catch (err) {
+    console.error("[scheduler] Recurring tasks cron error:", err.message);
+  } finally {
+    recurringRunning = false;
   }
 });

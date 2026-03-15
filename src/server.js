@@ -38,13 +38,11 @@ app.get("/status", (req, res) => {
 function buildReminderDate(timeString, dateString = null) {
   const now = new Date();
 
-  // If a specific date was extracted by AI, use it directly
   if (dateString) {
     const reminderDate = new Date(`${dateString}T${timeString}+05:30`);
     return reminderDate.toISOString();
   }
 
-  // Otherwise default to today IST, rolling to tomorrow if time has passed
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -58,14 +56,14 @@ function buildReminderDate(timeString, dateString = null) {
 
   const isoString = `${year}-${month}-${day}T${timeString}+05:30`;
   const reminderDate = new Date(isoString);
-  
+
   if (reminderDate < now) {
     reminderDate.setDate(reminderDate.getDate() + 1);
   }
   return reminderDate.toISOString();
 }
 
-// Formats HH:MM or HH:MM:SS to "9:00 AM" — handles both AI output and Postgres TIME values
+// Formats HH:MM or HH:MM:SS to "9:00 AM"
 function formatTimeDisplay(rawTime) {
   return new Date(`1970-01-01T${rawTime}`).toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -87,7 +85,8 @@ async function replyAndLog(phone, name, incomingMsg, botReply) {
 
 // ---------------------------------------------------------
 // HEALTH CHECK
-// /api/ping — used by cron-job.org to keep Render instance awake
+// /api/ping — monitored by UptimeRobot every 5 min
+// Returns 200 when healthy, 500 when Supabase is unreachable
 // ---------------------------------------------------------
 app.get("/api/ping", async (req, res) => {
   const start = performance.now();
@@ -109,7 +108,6 @@ app.get("/api/status", async (req, res) => {
   try {
     const stats = await getUsage();
 
-    // Fetch most recent last_fired_date from daily_routines for dashboard display
     const { data: routineFireData } = await supabase
       .from("daily_routines")
       .select("last_fired_date")
@@ -151,7 +149,14 @@ app.get("/api/status", async (req, res) => {
           name: "Routine Dispatch",
           schedule: "* * * * *",
           description: "Matches current IST time against active daily routines",
-          layman: "The Habits Manager: Ensures recurring daily habits (like 'drink water') never get missed.",
+          layman: "The Habits Manager: Ensures recurring daily habits never get missed.",
+          status: "scheduled",
+        },
+        {
+          name: "Recurring Task Dispatch",
+          schedule: "* * * * *",
+          description: "Fires weekly and monthly recurring tasks on their scheduled day and time",
+          layman: "The Calendar: Handles weekly and monthly recurring reminders like rent or trash day.",
           status: "scheduled",
         },
         {
@@ -191,7 +196,25 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 
   const messageData = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  if (!messageData?.text?.body) return;
+  if (!messageData) return;
+
+  // Feature 4: Graceful media/unsupported type handling
+  // If the message has no text body, check the type and reply helpfully
+  if (!messageData?.text?.body) {
+    const mediaTypes = ["audio", "image", "video", "document", "sticker"];
+    const msgType = messageData.type;
+
+    if (mediaTypes.includes(msgType)) {
+      const senderPhone = messageData.from;
+      const typeLabel = msgType === "audio" ? "voice notes" : `${msgType}s`;
+      await sendWhatsAppMessage(
+        senderPhone,
+        `I can only read text messages right now. I cannot process ${typeLabel}. Please type your request.`
+      );
+    }
+    // For unknown/unsupported types (reaction, location, etc.) — silently drop
+    return;
+  }
 
   const message = messageData.text.body;
   const senderPhone = messageData.from;
@@ -239,24 +262,35 @@ app.post("/webhook", async (req, res) => {
     return await replyAndLog(senderPhone, senderName, message, text);
   }
 
-  // 4. AI INTENT ANALYSIS
-  const aiResult = await analyzeMessage(message);
+  // 4. CONVERSATIONAL MEMORY — fetch last 4 turns for this sender
+  const { data: historyRows } = await supabase
+    .from("interaction_logs")
+    .select("message, bot_response")
+    .eq("sender_phone", senderPhone)
+    .order("created_at", { ascending: true })
+    .limit(4);
+
+  const history = (historyRows || []).map((row) => ({
+    userMessage: row.message,
+    botResponse: row.bot_response,
+  }));
+
+  // 5. AI INTENT ANALYSIS (with memory context)
+  const aiResult = await analyzeMessage(message, false, history);
   const { intent, targetName, time, date, taskOrMessage, ai_meta } = aiResult;
 
   // respond() is the single exit point — appends ai_meta automatically
-  // Pass overrideAiMeta when the summarising model differs from the intent model (e.g. web search)
   const respond = async (responseText, overrideAiMeta) => {
     const meta = overrideAiMeta !== undefined ? overrideAiMeta : ai_meta;
     const finalText = meta ? `${responseText}\n\n${meta}` : responseText;
     return await replyAndLog(senderPhone, senderName, message, finalText);
   };
 
-  // 5. ADDRESS BOOK
-  // Query-only intents do not need a phone number — bypass address book lookup
+  // 6. ADDRESS BOOK
   const queryOnlyIntents = [
     "query_birthday", "query_schedule", "query_events",
     "query_reminders", "query_routines", "query_contacts",
-    "save_contact", // does not need existing contact — creates one
+    "save_contact",
   ];
 
   let targetPhone = process.env.MY_PHONE_NUMBER;
@@ -281,7 +315,7 @@ app.post("/webhook", async (req, res) => {
     }
   }
 
-  // 6. INTENT ROUTING
+  // 7. INTENT ROUTING
   try {
     if (intent === "chat") {
       return await respond(taskOrMessage);
@@ -310,8 +344,7 @@ app.post("/webhook", async (req, res) => {
     if (intent === "delete_task") {
       if (!isOwner) return await respond("Access denied.");
 
-      // Strip trailing type hints the AI may include ("Drink Water Routine" → "Drink Water")
-      const cleanTask = taskOrMessage.replace(/(routine|reminder|task|event)/gi, "").trim();
+      const cleanTask = taskOrMessage.replace(/(routine|reminder|task|event)/gi, "").trim();
 
       const { data: remData } = await supabase
         .from("personal_reminders")
@@ -329,6 +362,14 @@ app.post("/webhook", async (req, res) => {
       if (routData?.length > 0)
         return await respond(`Deleted routine: "${routData[0].task_name}"`);
 
+      const { data: recurData } = await supabase
+        .from("recurring_tasks")
+        .delete()
+        .ilike("task_name", `%${cleanTask}%`)
+        .select();
+      if (recurData?.length > 0)
+        return await respond(`Deleted recurring task: "${recurData[0].task_name}"`);
+
       const { data: eventData } = await supabase
         .from("special_events")
         .delete()
@@ -338,6 +379,51 @@ app.post("/webhook", async (req, res) => {
         return await respond(`Deleted event for: "${eventData[0].person_name}"`);
 
       return await respond(`No task matching "${cleanTask}" found.`);
+    }
+
+    // Feature 1: edit_task — modify the most recent matching reminder
+    if (intent === "edit_task") {
+      if (!isOwner) return await respond("Access denied.");
+
+      const cleanTask = (aiResult.editTarget || taskOrMessage || "")
+        .replace(/(routine|reminder|task|event)/gi, "")
+        .trim();
+
+      if (!cleanTask) return await respond("Could not identify which task to edit. Please be more specific.");
+      if (!time) return await respond("Please specify the new time for the task.");
+
+      // Find the most recent pending reminder matching the task name
+      const { data: matches } = await supabase
+        .from("personal_reminders")
+        .select("*")
+        .eq("phone", targetPhone)
+        .eq("status", "pending")
+        .ilike("message", `%${cleanTask}%`)
+        .order("reminder_time", { ascending: true })
+        .limit(1);
+
+      if (!matches || matches.length === 0) {
+        return await respond(`No pending reminder found matching "${cleanTask}".`);
+      }
+
+      const existing = matches[0];
+      // Delete old row and insert updated one
+      await supabase.from("personal_reminders").delete().eq("id", existing.id);
+
+      const newTimestamp = buildReminderDate(time, date || null);
+      const { error: insertErr } = await supabase.from("personal_reminders").insert([{
+        phone: targetPhone,
+        message: existing.message,
+        reminder_time: newTimestamp,
+        group_name: existing.group_name,
+        status: "pending",
+      }]);
+
+      return await respond(
+        !insertErr
+          ? `Updated "${existing.message}" to ${formatTimeDisplay(time)}.`
+          : "Failed to update reminder. Please try again."
+      );
     }
 
     if (intent === "save_contact") {
@@ -376,6 +462,7 @@ app.post("/webhook", async (req, res) => {
         const { data } = await supabase
           .from("personal_reminders")
           .select("*")
+          .eq("phone", targetPhone)
           .gt("reminder_time", nowIso)
           .order("reminder_time");
         if (!data || data.length === 0) return await respond("No upcoming reminders.");
@@ -398,7 +485,6 @@ app.post("/webhook", async (req, res) => {
 
         if (interval.length > 0) {
           text += `\nInterval Reminders (${interval.length} pending):\n\n`;
-          // Group by message and show next fire time
           const grouped = {};
           interval.forEach((r) => {
             if (!grouped[r.message]) grouped[r.message] = [];
@@ -416,14 +502,43 @@ app.post("/webhook", async (req, res) => {
       }
 
       if (intent === "query_routines") {
-        const { data } = await supabase
+        const { data: dailyData } = await supabase
           .from("daily_routines")
           .select("*")
+          .eq("phone", targetPhone)
           .eq("is_active", true);
-        if (!data || data.length === 0) return await respond("No active routines.");
-        let text = "Active Daily Routines:\n\n";
-        data.forEach((r) => (text += `- ${formatTimeDisplay(r.reminder_time)}: ${r.task_name}\n`));
-        return await respond(text);
+
+        const { data: recurData } = await supabase
+          .from("recurring_tasks")
+          .select("*")
+          .eq("phone", targetPhone)
+          .eq("is_active", true);
+
+        const hasDailyData = dailyData && dailyData.length > 0;
+        const hasRecurData = recurData && recurData.length > 0;
+
+        if (!hasDailyData && !hasRecurData) return await respond("No active routines or recurring tasks.");
+
+        let text = "";
+
+        if (hasDailyData) {
+          text += "Daily Routines:\n\n";
+          dailyData.forEach((r) => (text += `- ${formatTimeDisplay(r.reminder_time)}: ${r.task_name}\n`));
+        }
+
+        if (hasRecurData) {
+          text += "\nRecurring Tasks:\n\n";
+          const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+          recurData.forEach((r) => {
+            if (r.recurrence_type === "weekly") {
+              text += `- Every ${DAY_NAMES[r.day_of_week]} at ${formatTimeDisplay(r.reminder_time)}: ${r.task_name}\n`;
+            } else {
+              text += `- Every month on the ${r.day_of_month} at ${formatTimeDisplay(r.reminder_time)}: ${r.task_name}\n`;
+            }
+          });
+        }
+
+        return await respond(text.trim());
       }
 
       if (intent === "query_events") {
@@ -485,7 +600,6 @@ app.post("/webhook", async (req, res) => {
     }
 
     if (intent === "event") {
-      // When owner says "my birthday", finalName is "you" — store as actual name
       const eventPersonName = finalName.toLowerCase() === "you" ? "Viswanath" : finalName;
       const { error } = await supabase.from("special_events").insert([{
         phone: targetPhone,
@@ -510,6 +624,54 @@ app.post("/webhook", async (req, res) => {
         !error
           ? `Routine set — ${taskOrMessage} daily at ${formatTimeDisplay(time)}.`
           : "Failed to save routine. Please try again."
+      );
+    }
+
+    // Feature 3: weekly_reminder and monthly_reminder intents
+    if (intent === "weekly_reminder") {
+      const dayOfWeek = parseInt(aiResult.dayOfWeek);
+      if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+        return await respond("Could not determine the day of the week. Please try again.");
+      }
+      if (!time) return await respond("Please specify a time for the weekly reminder.");
+
+      const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const { error } = await supabase.from("recurring_tasks").insert([{
+        phone: targetPhone,
+        task_name: taskOrMessage,
+        reminder_time: time,
+        recurrence_type: "weekly",
+        day_of_week: dayOfWeek,
+        day_of_month: null,
+        is_active: true,
+      }]);
+      return await respond(
+        !error
+          ? `Weekly reminder set — "${taskOrMessage}" every ${DAY_NAMES[dayOfWeek]} at ${formatTimeDisplay(time)}.`
+          : "Failed to save weekly reminder. Please try again."
+      );
+    }
+
+    if (intent === "monthly_reminder") {
+      const dayOfMonth = parseInt(aiResult.dayOfMonth);
+      if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+        return await respond("Could not determine the day of the month. Please try again.");
+      }
+      if (!time) return await respond("Please specify a time for the monthly reminder.");
+
+      const { error } = await supabase.from("recurring_tasks").insert([{
+        phone: targetPhone,
+        task_name: taskOrMessage,
+        reminder_time: time,
+        recurrence_type: "monthly",
+        day_of_week: null,
+        day_of_month: dayOfMonth,
+        is_active: true,
+      }]);
+      return await respond(
+        !error
+          ? `Monthly reminder set — "${taskOrMessage}" on the ${dayOfMonth} of every month at ${formatTimeDisplay(time)}.`
+          : "Failed to save monthly reminder. Please try again."
       );
     }
 

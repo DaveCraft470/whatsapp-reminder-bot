@@ -491,12 +491,16 @@
         <ul class="sidebar-links">
           <li><a href="#reminders">Reminders</a></li>
           <li><a href="#routines">Daily routines</a></li>
-           <li><a href="#interval-reminders">Interval reminders</a></li>
-          <li><a href="#events">Birthdays & events</a></li>
-          <li><a href="#contacts">Contacts & messaging</a></li>
+          <li><a href="#interval-reminders">Interval reminders</a></li>
+          <li><a href="#recurring">Weekly &amp; monthly</a></li>
+          <li><a href="#edit-task">Edit &amp; undo</a></li>
+          <li><a href="#memory">Conversational memory</a></li>
+          <li><a href="#events">Birthdays &amp; events</a></li>
+          <li><a href="#contacts">Contacts &amp; messaging</a></li>
           <li><a href="#search">Web search</a></li>
           <li><a href="#delete">Deleting tasks</a></li>
           <li><a href="#chat">Conversational chat</a></li>
+          <li><a href="#media">Media handling</a></li>
         </ul>
       </div>
 
@@ -536,15 +540,19 @@
           <p>Manvi is designed for a single owner — you. It is not a multi-tenant service. All personal data (reminders, contacts, events) is private to the WhatsApp number you configure as <code>MY_PHONE_NUMBER</code>.</p>
         </div>
 
-        <h3>What Manvi can do in v1.0</h3>
+        <h3>What Manvi can do in v1.1</h3>
         <div class="feat-list">
-          <div class="feat-item"><div class="feat-item-title">⏰ Reminders</div><div class="feat-item-desc">One-off reminders at a specific time or on a future date.</div></div>
+          <div class="feat-item"><div class="feat-item-title">⏰ Reminders</div><div class="feat-item-desc">One-off reminders at a specific time or on a future date. Vague times like "morning" or "evening" are resolved automatically.</div></div>
           <div class="feat-item"><div class="feat-item-title">🔁 Daily Routines</div><div class="feat-item-desc">Recurring tasks at a fixed time, every day indefinitely.</div></div>
-          <div class="feat-item"><div class="feat-item-title">🎂 Birthdays & Events</div><div class="feat-item-desc">Save once, get reminded every year with advance alerts.</div></div>
-          <div class="feat-item"><div class="feat-item-title">📇 Contacts & Messaging</div><div class="feat-item-desc">Save contacts and forward messages by name.</div></div>
-          <div class="feat-item"><div class="feat-item-title">🔍 Web Search</div><div class="feat-item-desc">Real-time web search via Tavily with Serper fallback.</div></div>
+          <div class="feat-item"><div class="feat-item-title">📅 Weekly &amp; Monthly Recurring</div><div class="feat-item-desc">Reminders on a specific day of the week or day of the month — every Tuesday, the 1st of every month, etc.</div></div>
+          <div class="feat-item"><div class="feat-item-title">✏️ Edit &amp; Undo</div><div class="feat-item-desc">Correct the last reminder with a follow-up — "Actually make that 6 PM" updates it in place.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🧠 Conversational Memory</div><div class="feat-item-desc">Manvi remembers the last 4 messages, enabling natural follow-up questions without repeating context.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🎂 Birthdays &amp; Events</div><div class="feat-item-desc">Save once, get reminded every year with advance alerts.</div></div>
+          <div class="feat-item"><div class="feat-item-title">📇 Contacts &amp; Messaging</div><div class="feat-item-desc">Save contacts and forward messages by name.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🔍 Web Search</div><div class="feat-item-desc">Real-time web search via Tavily with Serper fallback. Results formatted for WhatsApp.</div></div>
           <div class="feat-item"><div class="feat-item-title">💬 Conversational AI</div><div class="feat-item-desc">4-tier AI waterfall for general questions and chat.</div></div>
-          <div class="feat-item"><div class="feat-item-title">🗑 Delete Tasks</div><div class="feat-item-desc">Delete any reminder, routine, or event by name.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🗑 Delete Tasks</div><div class="feat-item-desc">Delete any reminder, routine, recurring task, or event by name.</div></div>
+          <div class="feat-item"><div class="feat-item-title">🎤 Media Handling</div><div class="feat-item-desc">Voice notes, images, and other media get a clear "text only" reply instead of silently failing.</div></div>
         </div>
       </div>
 
@@ -589,7 +597,7 @@
 
         <h3>5. Run the test suite</h3>
         <pre><code><span class="code-green">node test.js</span></code></pre>
-        <p>This validates all v1.0 features against your real Supabase instance and cleans up after itself.</p>
+        <p>This validates all v1.1 features against your real Supabase instance and cleans up after itself.</p>
       </div>
 
       <!-- ENV VARS -->
@@ -619,7 +627,7 @@
       <!-- DATABASE -->
       <div class="doc-section" id="database">
         <h2>Database setup</h2>
-        <p>Run this SQL in the Supabase SQL Editor once. It creates all 6 tables from scratch.</p>
+        <p>Run this SQL in the Supabase SQL Editor once. It creates all 7 tables from scratch.</p>
 
         <pre><span class="pre-label">SQL</span><code><span class="code-comment">-- Contacts address book</span>
 <span class="code-kw">CREATE TABLE</span> contacts (
@@ -639,13 +647,28 @@
   created_at    TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
 );
 
-<span class="code-comment">-- Daily routines (time only, no date)</span>
+<span class="code-comment">-- Daily routines (time only, fires every day)</span>
 <span class="code-kw">CREATE TABLE</span> daily_routines (
-  id            SERIAL <span class="code-kw">PRIMARY KEY</span>,
-  phone         VARCHAR(20) <span class="code-kw">NOT NULL</span>,
-  task_name     TEXT <span class="code-kw">NOT NULL</span>,
-  reminder_time TIME <span class="code-kw">NOT NULL</span>,
-  is_active     BOOLEAN <span class="code-kw">DEFAULT TRUE</span>
+  id              SERIAL <span class="code-kw">PRIMARY KEY</span>,
+  phone           VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  task_name       TEXT <span class="code-kw">NOT NULL</span>,
+  reminder_time   TIME <span class="code-kw">NOT NULL</span>,
+  is_active       BOOLEAN <span class="code-kw">DEFAULT TRUE</span>,
+  last_fired_date DATE
+);
+
+<span class="code-comment">-- Weekly and monthly recurring tasks</span>
+<span class="code-kw">CREATE TABLE</span> recurring_tasks (
+  id               BIGSERIAL <span class="code-kw">PRIMARY KEY</span>,
+  phone            VARCHAR(20) <span class="code-kw">NOT NULL</span>,
+  task_name        TEXT <span class="code-kw">NOT NULL</span>,
+  reminder_time    TIME <span class="code-kw">NOT NULL</span>,
+  recurrence_type  TEXT <span class="code-kw">NOT NULL CHECK</span> (recurrence_type <span class="code-kw">IN</span> (<span class="code-str">'weekly'</span>, <span class="code-str">'monthly'</span>)),
+  day_of_week      INTEGER,
+  day_of_month     INTEGER,
+  is_active        BOOLEAN <span class="code-kw">DEFAULT TRUE</span>,
+  last_fired_date  DATE,
+  created_at       TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
 );
 
 <span class="code-comment">-- Birthdays and special events</span>
@@ -658,7 +681,7 @@
   created_at  TIMESTAMP WITH TIME ZONE <span class="code-kw">DEFAULT NOW</span>()
 );
 
-<span class="code-comment">-- All incoming messages and bot responses</span>
+<span class="code-comment">-- All incoming messages and bot responses (also powers conversational memory)</span>
 <span class="code-kw">CREATE TABLE</span> interaction_logs (
   id           SERIAL <span class="code-kw">PRIMARY KEY</span>,
   sender_name  VARCHAR(50),
@@ -679,7 +702,6 @@
   error_count      INT <span class="code-kw">DEFAULT</span> 0
 );</code></pre>
       </div>
-
       <!-- META WEBHOOK -->
       <div class="doc-section" id="meta-webhook">
         <h2>Meta webhook setup</h2>
@@ -802,6 +824,56 @@ Explain machine learning simply
 Tell me a joke</code></pre>
       </div>
 
+      <div class="doc-section" id="recurring">
+        <h2>Weekly &amp; monthly recurring reminders</h2>
+        <p>For reminders that repeat on a specific day of the week or a specific day of the month — use weekly or monthly recurring tasks. These are stored separately from daily routines and have their own scheduler.</p>
+        <h3>Weekly</h3>
+        <pre><code>Remind me to take out the trash every Tuesday at 8 PM
+Every Friday at 6 PM remind me to submit my timesheet</code></pre>
+        <h3>Monthly</h3>
+        <pre><code>Remind me to pay rent on the 1st of every month at 9 AM
+On the 15th of every month remind me to check bank statement</code></pre>
+        <div class="callout">
+          <div class="callout-title">End of month edge case</div>
+          <p>If you set a monthly task for the 31st and the current month has fewer days, it fires on the last day of that month instead of being skipped.</p>
+        </div>
+        <p>To stop a recurring task, delete it by name: <em>"Delete the pay rent reminder"</em></p>
+      </div>
+
+      <div class="doc-section" id="edit-task">
+        <h2>Edit &amp; undo</h2>
+        <p>Made a mistake on a reminder time? Just send a correction as a follow-up message. Manvi uses conversation history to identify which reminder you mean and updates it in place — no delete and recreate needed.</p>
+        <pre><code><span class="code-comment"># First set a reminder</span>
+Remind me to buy eggs at 5 PM
+
+<span class="code-comment"># Immediately correct it</span>
+Actually make that 6 PM
+Change the buy eggs reminder to 7 PM</code></pre>
+        <div class="callout">
+          <div class="callout-title">Only works on pending reminders</div>
+          <p>Edit only targets one-off reminders that haven't fired yet. It does not edit daily routines, recurring tasks, or events. Use delete + recreate for those.</p>
+        </div>
+      </div>
+
+      <div class="doc-section" id="memory">
+        <h2>Conversational memory</h2>
+        <p>Manvi reads the last 4 messages in your conversation before processing each new one. This lets you ask natural follow-up questions without repeating context.</p>
+        <pre><code><span class="code-comment"># Ask a question</span>
+Who won IPL 2024?
+
+<span class="code-comment"># Follow up without repeating the topic</span>
+Who was the winning captain?
+Where was the final held?</code></pre>
+        <p>Memory is scoped strictly to your own phone number — other users' history is never mixed in.</p>
+      </div>
+
+      <div class="doc-section" id="media">
+        <h2>Media handling</h2>
+        <p>Manvi only processes text messages. If you accidentally send a voice note, image, video, document, or sticker, she replies with a clear message instead of silently ignoring it.</p>
+        <pre><code><span class="code-comment"># Sending a voice note gets back:</span>
+I can only read text messages right now. I cannot process voice notes. Please type your request.</code></pre>
+      </div>
+
       <!-- DEPLOYMENT -->
       <div class="doc-section" id="render">
         <h2>Deploy to Render</h2>
@@ -820,24 +892,32 @@ Tell me a joke</code></pre>
       </div>
 
       <div class="doc-section" id="keepalive">
-        <h2>Keep-alive setup</h2>
-        <p>Go to <a href="https://cron-job.org" target="_blank">cron-job.org</a>, create a free account, and add a new cron job:</p>
-        <ul>
-          <li><strong>URL:</strong> <code>https://your-app.onrender.com/api/ping</code></li>
-          <li><strong>Schedule:</strong> every 10 minutes</li>
-          <li><strong>Method:</strong> GET</li>
-        </ul>
-        <p>This keeps your Render instance awake so the scheduler never misses a reminder.</p>
+        <h2>Keep-alive &amp; uptime monitoring</h2>
+        <p>Render free instances sleep after 15 minutes of inactivity. Use <a href="https://uptimerobot.com" target="_blank">UptimeRobot</a> (free) to keep the instance awake and receive push notifications if it goes down.</p>
+        <ol>
+          <li>Create a free UptimeRobot account and install the UptimeRobot app on your phone</li>
+          <li>Go to <strong>Alert Contacts</strong> → add a <strong>Push Notification</strong> contact linked to your phone</li>
+          <li>Go to <strong>Monitors</strong> → <strong>Add New Monitor</strong></li>
+          <li>Type: <strong>HTTP(s)</strong>, URL: <code>https://your-app.onrender.com/api/ping</code></li>
+          <li>Monitoring interval: <strong>5 minutes</strong></li>
+          <li>Under Alert Contacts, select the push notification contact you created</li>
+        </ol>
+        <p>The <code>/api/ping</code> endpoint returns HTTP 200 when healthy and HTTP 500 when Supabase is unreachable — UptimeRobot will alert you on either condition.</p>
       </div>
 
       <div class="doc-section" id="testing">
         <h2>Testing locally</h2>
-        <p>The test suite runs against your real Supabase instance, inserts test data, verifies it, and cleans up after every run.</p>
-        <pre><code>node test.js</code></pre>
-        <p>Expected output: all tests pass with a summary table. If any test fails, the error is printed with a clear label so you can trace it to the relevant handler in <code>src/server.js</code>.</p>
+        <p>The test suite runs against your real Supabase instance, inserts test data, verifies it, and cleans up after every run. No real WhatsApp messages are sent.</p>
+        <pre><code><span class="code-comment"># Run the full suite</span>
+node test.js
+
+<span class="code-comment"># Run specific suites only</span>
+node test.js --suite formatter
+node test.js --suite formatter,memory,recurring</code></pre>
+        <p>Available suite keys: <code>connectivity</code>, <code>builddate</code>, <code>ai</code>, <code>reminders</code>, <code>routines</code>, <code>events</code>, <code>contacts</code>, <code>delete</code>, <code>interval</code>, <code>scheduler</code>, <code>usage</code>, <code>routes</code>, <code>memory</code>, <code>missingtime</code>, <code>edit</code>, <code>formatter</code>, <code>vaguedefaults</code>, <code>recurring</code>, <code>media</code>.</p>
         <div class="callout-warn callout">
-          <div class="callout-title">Before testing</div>
-          <p>Make sure your <code>.env</code> file is fully populated and the database schema has been created. The test script will fail immediately if Supabase cannot connect.</p>
+          <div class="callout-title">AI-dependent suites</div>
+          <p>Suites that call the AI waterfall (<code>ai</code>, <code>memory</code>, <code>missingtime</code>, <code>edit</code>, <code>vaguedefaults</code>, <code>recurring</code>) consume real quota and are non-deterministic. If quota is exhausted mid-run, remaining AI cases are skipped automatically. Run <code>formatter</code>, <code>media</code>, and <code>connectivity</code> for fast deterministic checks.</p>
         </div>
       </div>
 
@@ -850,11 +930,11 @@ Tell me a joke</code></pre>
           <tbody>
             <tr><td>1</td><td>Gemini 3 Flash Preview</td><td>~20 req/day (shared)</td><td>Free</td></tr>
             <tr><td>2</td><td>Gemini 2.5 Flash</td><td>~20 req/day (shared with Tier 1)</td><td>Free</td></tr>
-            <tr><td>3</td><td>Groq Llama 3.3 70B</td><td>3,000 req/day (safety cap)</td><td>Free</td></tr>
+            <tr><td>3</td><td>Groq Llama 3.3 70B</td><td>300 req/day (safety cap)</td><td>Free</td></tr>
             <tr><td>4</td><td>OpenRouter GPT-4o-mini</td><td>50 req/day (safety cap)</td><td>~$5 credit</td></tr>
           </tbody>
         </table>
-        <p>The model name and remaining quota is appended to every bot response so you always know which tier was used.</p>
+        <p>The model name and remaining quota is appended to every bot response so you always know which tier was used. Conversation history (last 4 turns) is injected into the system prompt on every call to support follow-up questions.</p>
       </div>
 
       <div class="doc-section" id="api-endpoints">
@@ -879,13 +959,13 @@ Tell me a joke</code></pre>
           <thead><tr><th>Service</th><th>Limit</th><th>Reset</th></tr></thead>
           <tbody>
             <tr><td>Gemini (Tier 1 + 2 combined)</td><td>40 req/day</td><td>Midnight IST</td></tr>
-            <tr><td>Groq</td><td>3,000 req/day (safety cap)</td><td>Midnight UTC</td></tr>
+            <tr><td>Groq</td><td>300 req/day (safety cap)</td><td>Midnight UTC</td></tr>
             <tr><td>OpenRouter</td><td>50 req/day (safety cap)</td><td>Midnight UTC</td></tr>
             <tr><td>Tavily</td><td>1,000 req/month</td><td>Monthly</td></tr>
             <tr><td>Serper</td><td>2,500 req lifetime</td><td>Never resets</td></tr>
           </tbody>
         </table>
-        <p>Manvi alerts you on WhatsApp when any search service hits 50, 10, or 0 remaining credits.</p>
+        <p>Manvi alerts you on WhatsApp when any search service hits 50, 10, or 0 remaining credits. Live usage is visible on the <a href="/status">status dashboard</a>.</p>
       </div>
 
       <div class="doc-section" id="troubleshooting">

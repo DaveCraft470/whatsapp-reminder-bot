@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <title>System Status | Manvi</title>
   <meta name="description" content="Live system status, API usage quotas, and observability dashboard for Manvi.">
   <meta name="robots" content="index, follow">
@@ -12,12 +13,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://manvi.onrender.com/status">
   <meta property="og:title" content="System Status | Manvi">
-  <meta property="og:description" content="Live system status, API usage quotas, and observability dashboard for Manvi.">
+  <meta property="og:description"
+    content="Live system status, API usage quotas, and observability dashboard for Manvi.">
   <meta property="og:image" content="https://manvi.onrender.com/preview-image.jpg">
-  
+
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="System Status | Manvi">
-  <meta name="twitter:description" content="Live system status, API usage quotas, and observability dashboard for Manvi.">
+  <meta name="twitter:description"
+    content="Live system status, API usage quotas, and observability dashboard for Manvi.">
   <meta name="twitter:image" content="https://manvi.onrender.com/preview-image.jpg">
 
   <link rel="icon" type="image/png" href="/assets/favicon-onemark/favicon-96x96.png" sizes="96x96" />
@@ -27,9 +30,18 @@
   <link rel="manifest" href="/assets/favicon-onemark/site.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       --green: #25D366;
@@ -61,7 +73,9 @@
       --border: #e5e7eb;
     }
 
-    html { -webkit-font-smoothing: antialiased; }
+    html {
+      -webkit-font-smoothing: antialiased;
+    }
 
     body {
       font-family: var(--font);
@@ -96,7 +110,8 @@
     }
 
     .top-nav-logo .dot {
-      width: 7px; height: 7px;
+      width: 7px;
+      height: 7px;
       background: var(--green);
       border-radius: 50%;
     }
@@ -128,7 +143,10 @@
       transition: color 0.15s, background 0.15s;
     }
 
-    .top-nav-links a:hover { color: var(--text-1); background: var(--bg-3); }
+    .top-nav-links a:hover {
+      color: var(--text-1);
+      background: var(--bg-3);
+    }
 
     /* CONTAINER */
     .container {
@@ -153,7 +171,9 @@
       color: var(--text-1);
     }
 
-    .wordmark span { color: var(--green); }
+    .wordmark span {
+      color: var(--green);
+    }
 
     .header-right {
       display: flex;
@@ -183,7 +203,9 @@
       transition: border-color 0.15s;
     }
 
-    .theme-btn:hover { border-color: var(--text-2); }
+    .theme-btn:hover {
+      border-color: var(--text-2);
+    }
 
     .status-badge {
       display: flex;
@@ -199,25 +221,48 @@
     }
 
     .status-dot {
-      width: 6px; height: 6px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--text-3);
     }
 
-    .status-dot.ok { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
-    .status-dot.warn { background: var(--amber); }
-    .status-dot.err { background: var(--rose); }
+    .status-dot.ok {
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
+    }
+
+    .status-dot.warn {
+      background: var(--amber);
+    }
+
+    .status-dot.err {
+      background: var(--rose);
+    }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--teal); }
-      50% { opacity: 0.5; box-shadow: 0 0 10px var(--teal); }
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 4px var(--teal);
+      }
+
+      50% {
+        opacity: 0.5;
+        box-shadow: 0 0 10px var(--teal);
+      }
     }
-    .status-dot.pulse { animation: pulse 2s ease-in-out infinite; }
+
+    .status-dot.pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
 
     .status-badge.ok {
       border-color: rgba(63, 185, 80, 0.4);
       color: var(--teal);
     }
+
     .status-badge.error {
       border-color: rgba(248, 81, 73, 0.4);
       color: var(--rose);
@@ -271,8 +316,13 @@
       cursor: default;
     }
 
-    .uptime-block.ok { background: var(--teal); }
-    .uptime-block.err { background: var(--rose); }
+    .uptime-block.ok {
+      background: var(--teal);
+    }
+
+    .uptime-block.err {
+      background: var(--rose);
+    }
 
     .uptime-status {
       font-family: var(--mono);
@@ -299,7 +349,9 @@
       transition: border-color 0.15s;
     }
 
-    .metric-card:hover { border-color: var(--text-3); }
+    .metric-card:hover {
+      border-color: var(--text-3);
+    }
 
     .metric-tier {
       font-family: var(--mono);
@@ -347,11 +399,25 @@
       transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .progress-fill.blue { background: var(--blue); }
-    .progress-fill.violet { background: var(--violet); }
-    .progress-fill.amber { background: var(--amber); }
-    .progress-fill.teal { background: var(--teal); }
-    .progress-fill.rose { background: var(--rose); }
+    .progress-fill.blue {
+      background: var(--blue);
+    }
+
+    .progress-fill.violet {
+      background: var(--violet);
+    }
+
+    .progress-fill.amber {
+      background: var(--amber);
+    }
+
+    .progress-fill.teal {
+      background: var(--teal);
+    }
+
+    .progress-fill.rose {
+      background: var(--rose);
+    }
 
     /* CHART */
     .chart-section {
@@ -379,13 +445,19 @@
 
     .legend-item::before {
       content: '';
-      width: 20px; height: 2px;
+      width: 20px;
+      height: 2px;
       border-radius: 1px;
       display: block;
     }
 
-    .legend-item.blue::before { background: var(--blue); }
-    .legend-item.rose::before { background: var(--rose); }
+    .legend-item.blue::before {
+      background: var(--blue);
+    }
+
+    .legend-item.rose::before {
+      background: var(--rose);
+    }
 
     /* JOBS */
     .jobs-section {
@@ -434,7 +506,9 @@
       vertical-align: middle;
     }
 
-    .jobs-table tr:last-child td { border-bottom: none; }
+    .jobs-table tr:last-child td {
+      border-bottom: none;
+    }
 
     .jobs-table td:first-child {
       font-family: var(--mono);
@@ -462,14 +536,28 @@
 
     .job-status::before {
       content: '';
-      width: 5px; height: 5px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
     }
 
-    .job-status.active { background: rgba(63,185,80,0.12); color: var(--teal); }
-    .job-status.active::before { background: var(--teal); }
-    .job-status.scheduled { background: rgba(88,166,255,0.1); color: var(--blue); }
-    .job-status.scheduled::before { background: var(--blue); }
+    .job-status.active {
+      background: rgba(63, 185, 80, 0.12);
+      color: var(--teal);
+    }
+
+    .job-status.active::before {
+      background: var(--teal);
+    }
+
+    .job-status.scheduled {
+      background: rgba(88, 166, 255, 0.1);
+      color: var(--blue);
+    }
+
+    .job-status.scheduled::before {
+      background: var(--blue);
+    }
 
     .loading-cell {
       font-family: var(--mono);
@@ -488,19 +576,29 @@
       border-top: 1px solid var(--border);
     }
 
-    footer span, footer a {
+    footer span,
+    footer a {
       font-family: var(--mono);
       font-size: 0.72rem;
       color: var(--text-3);
     }
 
-    footer a { text-decoration: none; transition: color 0.15s; }
-    footer a:hover { color: var(--text-2); }
-    .footer-divider { color: var(--border) !important; }
+    footer a {
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    footer a:hover {
+      color: var(--text-2);
+    }
+
+    .footer-divider {
+      color: var(--border) !important;
+    }
 
     .disclaimer-bar {
-      background: rgba(37,211,102,0.08);
-      border-bottom: 1px solid rgba(37,211,102,0.18);
+      background: rgba(37, 211, 102, 0.08);
+      border-bottom: 1px solid rgba(37, 211, 102, 0.18);
       text-align: center;
       padding: 0.55rem 1.5rem;
       font-family: var(--mono);
@@ -510,15 +608,23 @@
     }
 
     @media (max-width: 760px) {
-      .metrics-grid { grid-template-columns: 1fr 1fr; }
-      .top-nav-links { display: none; }
+      .metrics-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .top-nav-links {
+        display: none;
+      }
     }
 
     @media (max-width: 480px) {
-      .metrics-grid { grid-template-columns: 1fr; }
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <nav class="top-nav">
@@ -535,7 +641,8 @@
   </nav>
 
   <div class="disclaimer-bar">
-    This dashboard shows API usage for the deployed instance owner. If you self-host Manvi, this page will display your own usage data from your Supabase database.
+    This dashboard shows API usage for the deployed instance owner. If you self-host Manvi, this page will display your
+    own usage data from your Supabase database.
   </div>
 
   <div class="container">
@@ -563,9 +670,13 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <div class="section-label" style="margin-bottom: 0;">API Usage Quotas</div>
-      <div class="chart-toggle" style="display: flex; gap: 0.25rem; background: var(--bg-3); padding: 0.25rem; border-radius: 6px; border: 1px solid var(--border);">
-        <button id="btnTier24h" class="toggle-btn active" style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: var(--bg-2); color: var(--text-1); cursor: pointer; font-weight: 600;">24H</button>
-        <button id="btnTierAll" class="toggle-btn" style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: transparent; color: var(--text-2); cursor: pointer; font-weight: 600;">ALL TIME</button>
+      <div class="chart-toggle"
+        style="display: flex; gap: 0.25rem; background: var(--bg-3); padding: 0.25rem; border-radius: 6px; border: 1px solid var(--border);">
+        <button id="btnTier24h" class="toggle-btn active"
+          style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: var(--bg-2); color: var(--text-1); cursor: pointer; font-weight: 600;">24H</button>
+        <button id="btnTierAll" class="toggle-btn"
+          style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: transparent; color: var(--text-2); cursor: pointer; font-weight: 600;">ALL
+          TIME</button>
       </div>
     </div>
 
@@ -573,45 +684,58 @@
       <div class="metric-card" id="card-gemini">
         <div class="metric-tier">TIER 1 / 2</div>
         <div class="metric-name">Gemini</div>
-        <div class="metric-value"><span id="geminiCount">0</span><span class="metric-limit">/ <span id="geminiLimit"></span></span></div>
-        <div class="progress-track"><div class="progress-fill blue" id="geminiBar"></div></div>
+        <div class="metric-value"><span id="geminiCount">0</span></div>
+        <div class="progress-track">
+          <div class="progress-fill blue" id="geminiBar"></div>
+        </div>
       </div>
 
       <div class="metric-card" id="card-groq">
         <div class="metric-tier">TIER 3</div>
         <div class="metric-name">Groq</div>
-        <div class="metric-value"><span id="groqCount">0</span><span class="metric-limit">/ <span id="groqLimit"></span></span></div>
-        <div class="progress-track"><div class="progress-fill violet" id="groqBar"></div></div>
+        <div class="metric-value"><span id="groqCount">0</span></div>
+        <div class="progress-track">
+          <div class="progress-fill violet" id="groqBar"></div>
+        </div>
       </div>
 
       <div class="metric-card" id="card-or">
         <div class="metric-tier">TIER 4 — PAID</div>
         <div class="metric-name">OpenRouter</div>
-        <div class="metric-value"><span id="orCount">0</span><span class="metric-limit">/ <span id="orLimit"></span></span></div>
-        <div class="progress-track"><div class="progress-fill amber" id="orBar"></div></div>
+        <div class="metric-value"><span id="orCount">0</span></div>
+        <div class="progress-track">
+          <div class="progress-fill amber" id="orBar"></div>
+        </div>
       </div>
 
       <div class="metric-card" id="card-tavily">
         <div class="metric-tier">SEARCH — MONTHLY</div>
         <div class="metric-name">Tavily</div>
-        <div class="metric-value"><span id="tavilyCount">0</span><span class="metric-limit">/ <span id="tavilyLimit"></span></span></div>
-        <div class="progress-track"><div class="progress-fill teal" id="tavilyBar"></div></div>
+        <div class="metric-value"><span id="tavilyCount">0</span></div>
+        <div class="progress-track">
+          <div class="progress-fill teal" id="tavilyBar"></div>
+        </div>
       </div>
 
       <div class="metric-card" id="card-serper">
         <div class="metric-tier">SEARCH — LIFETIME</div>
         <div class="metric-name">Serper</div>
-        <div class="metric-value"><span id="serperCount">0</span><span class="metric-limit">/ <span id="serperLimit"></span></span></div>
-        <div class="progress-track"><div class="progress-fill rose" id="serperBar"></div></div>
+        <div class="metric-value"><span id="serperCount">0</span></div>
+        <div class="progress-track">
+          <div class="progress-fill rose" id="serperBar"></div>
+        </div>
       </div>
     </section>
 
     <section class="chart-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div class="section-label" style="margin-bottom: 0;">Request Volume</div>
-        <div class="chart-toggle" style="display: flex; gap: 0.25rem; background: var(--bg-3); padding: 0.25rem; border-radius: 6px; border: 1px solid var(--border);">
-          <button id="btn24h" class="toggle-btn active" style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: var(--bg-2); color: var(--text-1); cursor: pointer; font-weight: 600;">24H</button>
-          <button id="btn7d" class="toggle-btn" style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: transparent; color: var(--text-2); cursor: pointer; font-weight: 600;">7D</button>
+        <div class="chart-toggle"
+          style="display: flex; gap: 0.25rem; background: var(--bg-3); padding: 0.25rem; border-radius: 6px; border: 1px solid var(--border);">
+          <button id="btn24h" class="toggle-btn active"
+            style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: var(--bg-2); color: var(--text-1); cursor: pointer; font-weight: 600;">24H</button>
+          <button id="btn7d" class="toggle-btn"
+            style="font-family: var(--mono); font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: 4px; border: none; background: transparent; color: var(--text-2); cursor: pointer; font-weight: 600;">7D</button>
         </div>
       </div>
       <div class="chart-legend">
@@ -637,7 +761,9 @@
           </tr>
         </thead>
         <tbody id="jobsTableBody">
-          <tr><td colspan="4" class="loading-cell">Loading...</td></tr>
+          <tr>
+            <td colspan="4" class="loading-cell">Loading...</td>
+          </tr>
         </tbody>
       </table>
     </section>
@@ -645,11 +771,13 @@
     <footer>
       <span id="uptimeText">Uptime: calculating...</span>
       <span class="footer-divider">|</span>
-      <a href="https://viswabnath.github.io/portfolio/" target="_blank">Viswanath Bodasakurthi</a> | <a href="https://onemark.co.in/" target="_blank">Onemark</a>
+      <a href="https://viswabnath.github.io/portfolio/" target="_blank">Viswanath Bodasakurthi</a> | <a
+        href="https://onemark.co.in/" target="_blank">Onemark</a>
     </footer>
 
   </div>
 
   <script src="app.js"></script>
 </body>
+
 </html>
