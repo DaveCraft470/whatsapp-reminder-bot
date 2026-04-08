@@ -9,7 +9,7 @@ const { analyzeMessage } = require("./gemini");
 const { searchWeb } = require("./search");
 const { getUsage, LIMITS } = require("./usage");
 const { version } = require("../package.json");
-const { getHeartbeats } = require("./scheduler");
+const { getHeartbeats, runReminderDispatch, runRoutineDispatch, runRecurringDispatch } = require("./scheduler");
 
 const app = express();
 app.use(express.json());
@@ -98,6 +98,35 @@ app.get("/api/ping", async (req, res) => {
     latency_ms: latency,
     timestamp: new Date().toISOString(),
   });
+});
+
+// ---------------------------------------------------------
+// TICK — External cron trigger
+// /api/tick?secret=... — called by cron-job.org every minute
+//
+// This is the primary reliability mechanism for hosted environments
+// (e.g. Render) where the process may sleep between requests.
+// Calling this endpoint runs all three dispatch jobs immediately,
+// catching up on any reminders/routines missed during sleep.
+//
+// Set CRON_SECRET in your environment. Configure cron-job.org to GET:
+//   https://your-app.onrender.com/api/tick?secret=YOUR_CRON_SECRET
+// every 1 minute.
+// ---------------------------------------------------------
+app.get("/api/tick", async (req, res) => {
+  const incoming = req.query.secret || req.headers["x-cron-secret"];
+  if (!process.env.CRON_SECRET || incoming !== process.env.CRON_SECRET) {
+    return res.sendStatus(403);
+  }
+
+  // Run all dispatchers — they have internal guard flags, so safe to call in parallel
+  await Promise.all([
+    runReminderDispatch(),
+    runRoutineDispatch(),
+    runRecurringDispatch(),
+  ]);
+
+  res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
 // ---------------------------------------------------------
@@ -765,21 +794,23 @@ app.post("/webhook", async (req, res) => {
 app.listen(process.env.PORT || 3000, () => {
   console.log(`[server] Manvi v${version} running on port ${process.env.PORT || 3000}`);
 
-  // Self-Pinging Keep-Alive (prevents Render sleep)
-  const PUBLIC_URL = process.env.PUBLIC_URL;
-  if (PUBLIC_URL) {
-    console.log(`[keep-alive] Self-pinging enabled for ${PUBLIC_URL}`);
+  // Self-Ping Keep-Alive (secondary — primary reliability is cron-job.org calling /api/tick)
+  // Pings /api/tick every 4 minutes so the process stays awake AND runs dispatch jobs.
+  // Note: if the process is already suspended, this interval won't fire — that's why
+  // the external cron service (cron-job.org) is the primary mechanism.
+  const PUBLIC_URL = (process.env.PUBLIC_URL || "").replace(/\/$/, ""); // strip trailing slash
+  const CRON_SECRET = process.env.CRON_SECRET;
+  if (PUBLIC_URL && CRON_SECRET) {
+    console.log(`[keep-alive] Self-pinging /api/tick every 4 min for ${PUBLIC_URL}`);
     const axios = require("axios");
     setInterval(async () => {
       try {
-        await axios.get(`${PUBLIC_URL}/api/ping`);
-        console.log(`[keep-alive] Heartbeat sent to ${PUBLIC_URL}`);
+        await axios.get(`${PUBLIC_URL}/api/tick?secret=${CRON_SECRET}`);
       } catch (err) {
         console.warn(`[keep-alive] Self-ping warning: ${err.message}`);
       }
-    }, 10 * 60 * 1000); // Every 10 minutes
+    }, 4 * 60 * 1000); // Every 4 minutes
   } else {
-    console.warn("[keep-alive] WARNING: PUBLIC_URL not set. The bot may go to sleep if inactive.");
-    console.warn("[keep-alive] Add PUBLIC_URL to your .env to enable self-pinging.");
+    console.warn("[keep-alive] WARNING: PUBLIC_URL or CRON_SECRET not set. Configure an external cron to call /api/tick every minute.");
   }
 });

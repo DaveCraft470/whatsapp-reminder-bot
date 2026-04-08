@@ -46,7 +46,7 @@ function getISTComponents() {
   };
 }
 
-// Guard flags — prevent overlapping cron executions
+// Guard flags — prevent overlapping executions
 let reminderRunning = false;
 let routineRunning = false;
 let recurringRunning = false;
@@ -62,25 +62,22 @@ const lastHeartbeats = {
 async function recordHeartbeat(jobName) {
   const now = new Date().toISOString();
   lastHeartbeats[jobName] = now;
-  
-  try {
-    // Ensure daily usage row exists (uptime visualization)
-    await ensureRowExists();
 
-    const { error } = await supabase
+  try {
+    await ensureRowExists();
+    await supabase
       .from("system_jobs")
       .upsert({ job_name: jobName, last_fired: now, status: "active" }, { onConflict: "job_name" });
-    
-    if (error && error.code !== 'PGRST116') {
-      // Silently fail if table doesn't exist, fallback is already in lastHeartbeats
-    }
   } catch (e) {
-    // Silently fail
+    // Silently fail — in-memory fallback already set
   }
 }
 
-// CRON 1: One-off reminder dispatch — runs every minute
-cron.schedule("* * * * *", async () => {
+// -----------------------------------------------------------------------
+// Exported dispatch functions — called by both cron AND /api/tick
+// -----------------------------------------------------------------------
+
+async function runReminderDispatch() {
   if (reminderRunning) return;
   reminderRunning = true;
 
@@ -103,16 +100,14 @@ cron.schedule("* * * * *", async () => {
       }
     }
   } catch (err) {
-    console.error("[scheduler] Reminder cron error:", err.message);
+    console.error("[scheduler] Reminder dispatch error:", err.message);
   } finally {
     reminderRunning = false;
     await recordHeartbeat("Reminder Dispatch");
   }
-});
+}
 
-// CRON 2: Daily routine dispatch — runs every minute
-// Fires if scheduled time has passed today AND not yet fired today (last_fired_date guard)
-cron.schedule("* * * * *", async () => {
+async function runRoutineDispatch() {
   if (routineRunning) return;
   routineRunning = true;
 
@@ -139,14 +134,80 @@ cron.schedule("* * * * *", async () => {
       }
     }
   } catch (err) {
-    console.error("[scheduler] Routine cron error:", err.message);
+    console.error("[scheduler] Routine dispatch error:", err.message);
   } finally {
     routineRunning = false;
     await recordHeartbeat("Routine Dispatch");
   }
-});
+}
 
-// CRON 3: Special event alerts — runs at 08:30 IST (03:00 UTC)
+async function runRecurringDispatch() {
+  if (recurringRunning) return;
+  recurringRunning = true;
+
+  try {
+    const { day, dayOfWeek, timeStr, todayIST } = getISTComponents();
+
+    const { data: tasks } = await supabase
+      .from("recurring_tasks")
+      .select("*")
+      .eq("is_active", true)
+      .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`);
+
+    if (!tasks || tasks.length === 0) return;
+
+    for (const task of tasks) {
+      const taskHHMM = task.reminder_time.slice(0, 5);
+
+      if (timeStr < taskHHMM) continue;
+
+      let shouldFire = false;
+
+      if (task.recurrence_type === "weekly") {
+        shouldFire = task.day_of_week === dayOfWeek;
+      } else if (task.recurrence_type === "monthly") {
+        const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const tomorrowIST = new Date(nowIST);
+        tomorrowIST.setDate(tomorrowIST.getDate() + 1);
+        const isLastDayOfMonth = tomorrowIST.getDate() === 1;
+
+        if (isLastDayOfMonth && task.day_of_month > day) {
+          shouldFire = true;
+        } else {
+          shouldFire = task.day_of_month === day;
+        }
+      }
+
+      if (shouldFire) {
+        await sendWhatsAppMessage(task.phone, task.task_name, templateOptions);
+        await supabase
+          .from("recurring_tasks")
+          .update({ last_fired_date: todayIST })
+          .eq("id", task.id);
+      }
+    }
+  } catch (err) {
+    console.error("[scheduler] Recurring dispatch error:", err.message);
+  } finally {
+    recurringRunning = false;
+    await recordHeartbeat("Recurring Task Dispatch");
+  }
+}
+
+// -----------------------------------------------------------------------
+// Cron jobs — call the exported dispatch functions every minute.
+// These run when the process is continuously awake (e.g. paid hosting).
+// When the process sleeps, /api/tick (called by an external cron service)
+// invokes the same functions to catch up on missed dispatches.
+// -----------------------------------------------------------------------
+
+cron.schedule("* * * * *", runReminderDispatch);
+cron.schedule("* * * * *", runRoutineDispatch);
+cron.schedule("* * * * *", runRecurringDispatch);
+
+// CRON: Special event alerts — runs at 08:30 IST (03:00 UTC)
+// Kept as cron-only because it has no idempotency guard — calling it
+// every minute would send duplicate birthday alerts.
 cron.schedule("0 3 * * *", async () => {
   try {
     const { day: todayDay, month: todayMonth } = getISTComponents();
@@ -188,88 +249,9 @@ cron.schedule("0 3 * * *", async () => {
   }
 });
 
-// CRON 4: Recurring tasks dispatch — runs every minute
-//
-// Handles weekly and monthly recurring tasks from the recurring_tasks table.
-//
-// Weekly logic:
-//   Fire if today's IST dayOfWeek matches task.day_of_week
-//   AND current IST time >= task.reminder_time
-//   AND not yet fired today (last_fired_date guard)
-//
-// Monthly logic:
-//   Fire if today's IST day-of-month matches task.day_of_month
-//   AND current IST time >= task.reminder_time
-//   AND not yet fired today (last_fired_date guard)
-//
-// Schema required:
-//   CREATE TABLE recurring_tasks (
-//     id          BIGSERIAL PRIMARY KEY,
-//     phone       TEXT NOT NULL,
-//     task_name   TEXT NOT NULL,
-//     reminder_time TIME NOT NULL,         -- HH:MM — same as daily_routines
-//     recurrence_type TEXT NOT NULL,       -- 'weekly' | 'monthly'
-//     day_of_week  INTEGER,               -- 0=Sun … 6=Sat, NULL for monthly
-//     day_of_month INTEGER,               -- 1-31, NULL for weekly
-//     is_active   BOOLEAN DEFAULT TRUE,
-//     last_fired_date DATE,               -- prevents double-fire on same day
-//     created_at  TIMESTAMPTZ DEFAULT NOW()
-//   );
-cron.schedule("* * * * *", async () => {
-  if (recurringRunning) return;
-  recurringRunning = true;
-
-  try {
-    const { day, dayOfWeek, timeStr, todayIST } = getISTComponents();
-
-    // Fetch all active recurring tasks not yet fired today
-    const { data: tasks } = await supabase
-      .from("recurring_tasks")
-      .select("*")
-      .eq("is_active", true)
-      .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`);
-
-    if (!tasks || tasks.length === 0) return;
-
-    for (const task of tasks) {
-      const taskHHMM = task.reminder_time.slice(0, 5);
-
-      // Time gate — don't fire before scheduled time
-      if (timeStr < taskHHMM) continue;
-
-      let shouldFire = false;
-
-      if (task.recurrence_type === "weekly") {
-        shouldFire = task.day_of_week === dayOfWeek;
-      } else if (task.recurrence_type === "monthly") {
-        const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const tomorrowIST = new Date(nowIST);
-        tomorrowIST.setDate(tomorrowIST.getDate() + 1);
-        const isLastDayOfMonth = tomorrowIST.getDate() === 1;
-
-        if (isLastDayOfMonth && task.day_of_month > day) {
-          shouldFire = true;
-        } else {
-          shouldFire = task.day_of_month === day;
-        }
-      }
-
-      if (shouldFire) {
-        await sendWhatsAppMessage(task.phone, task.task_name, templateOptions);
-        await supabase
-          .from("recurring_tasks")
-          .update({ last_fired_date: todayIST })
-          .eq("id", task.id);
-      }
-    }
-  } catch (err) {
-    console.error("[scheduler] Recurring tasks cron error:", err.message);
-  } finally {
-    recurringRunning = false;
-    await recordHeartbeat("Recurring Task Dispatch");
-  }
-});
-
 module.exports = {
-  getHeartbeats: () => lastHeartbeats
+  getHeartbeats: () => lastHeartbeats,
+  runReminderDispatch,
+  runRoutineDispatch,
+  runRecurringDispatch,
 };
