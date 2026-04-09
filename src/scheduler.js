@@ -4,10 +4,6 @@ const sendWhatsAppMessage = require("./sendMessage");
 const supabase = require("./supabase");
 const { ensureRowExists } = require("./usage");
 
-// WhatsApp Template name for automated outreach
-// This bypasses the 24-hour interaction window limit.
-const templateOptions = { templateName: "manvi_reminder" };
-
 function getISTComponents() {
   const now = new Date();
 
@@ -20,7 +16,6 @@ function getISTComponents() {
 
   const [{ value: day }, , { value: month }] = formatter.formatToParts(now);
 
-  // dayOfWeek in IST — 0=Sunday, 1=Monday ... 6=Saturday
   const dowFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Kolkata",
     weekday: "short",
@@ -32,11 +27,9 @@ function getISTComponents() {
     day: parseInt(day),
     month: parseInt(month),
     dayOfWeek: dowMap[dowStr],
-    // YYYY-MM-DD in IST — used as last_fired_date key
     todayIST: new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Kolkata",
     }).format(now),
-    // HH:mm in IST — used for time comparison
     timeStr: new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Kolkata",
       hour: "2-digit",
@@ -52,25 +45,24 @@ let routineRunning = false;
 let recurringRunning = false;
 let eventAlertRunning = false;
 
-// Heartbeat tracking (In-memory fallback for dashboard)
+// Heartbeat tracking (in-memory fallback for dashboard)
 const lastHeartbeats = {
   "Reminder Dispatch": null,
   "Routine Dispatch": null,
   "Recurring Task Dispatch": null,
-  "Event Alert": null
+  "Event Alert": null,
 };
 
 async function recordHeartbeat(jobName) {
   const now = new Date().toISOString();
   lastHeartbeats[jobName] = now;
-
   try {
     await ensureRowExists();
     await supabase
       .from("system_jobs")
       .upsert({ job_name: jobName, last_fired: now, status: "active" }, { onConflict: "job_name" });
-  } catch (e) {
-    // Silently fail — in-memory fallback already set
+  } catch (_) {
+    // in-memory fallback already set
   }
 }
 
@@ -91,21 +83,25 @@ async function runReminderDispatch() {
       .lte("reminder_time", now)
       .eq("status", "pending");
 
-    if (dueReminders?.length > 0) {
-      for (const reminder of dueReminders) {
-        // Atomic claim — prevents duplicate sends if two dispatchers run concurrently
-        const { data: claimed } = await supabase
-          .from("personal_reminders")
-          .update({ status: "completed" })
-          .eq("id", reminder.id)
-          .eq("status", "pending")
-          .select("id");
-        if (!claimed?.length) continue;
-        await sendWhatsAppMessage(reminder.phone, reminder.message, templateOptions);
+    for (const reminder of dueReminders || []) {
+      // Atomic claim — skips row if already taken by a concurrent dispatcher
+      const { data: claimed } = await supabase
+        .from("personal_reminders")
+        .update({ status: "completed" })
+        .eq("id", reminder.id)
+        .eq("status", "pending")
+        .select("id");
+      if (!claimed?.length) continue;
+
+      try {
+        await sendWhatsAppMessage(reminder.phone, reminder.message);
+      } catch (_) {
+        // Revert so it retries next cycle
+        await supabase.from("personal_reminders").update({ status: "pending" }).eq("id", reminder.id);
       }
     }
-  } catch (err) {
-    console.error("[scheduler] Reminder dispatch error:", err.message);
+  } catch (_) {
+    // DB error — will retry next cycle
   } finally {
     reminderRunning = false;
     await recordHeartbeat("Reminder Dispatch");
@@ -125,25 +121,25 @@ async function runRoutineDispatch() {
       .eq("is_active", true)
       .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`);
 
-    if (!routines || routines.length === 0) return;
+    for (const routine of routines || []) {
+      if (timeStr < routine.reminder_time.slice(0, 5)) continue;
 
-    for (const routine of routines) {
-      const routineHHMM = routine.reminder_time.slice(0, 5);
+      const { data: claimed } = await supabase
+        .from("daily_routines")
+        .update({ last_fired_date: todayIST })
+        .eq("id", routine.id)
+        .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`)
+        .select("id");
+      if (!claimed?.length) continue;
 
-      if (timeStr >= routineHHMM) {
-        // Atomic claim — prevents duplicate sends if two dispatchers run concurrently
-        const { data: claimed } = await supabase
-          .from("daily_routines")
-          .update({ last_fired_date: todayIST })
-          .eq("id", routine.id)
-          .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`)
-          .select("id");
-        if (!claimed?.length) continue;
-        await sendWhatsAppMessage(routine.phone, routine.task_name, templateOptions);
+      try {
+        await sendWhatsAppMessage(routine.phone, routine.task_name);
+      } catch (_) {
+        await supabase.from("daily_routines").update({ last_fired_date: null }).eq("id", routine.id);
       }
     }
-  } catch (err) {
-    console.error("[scheduler] Routine dispatch error:", err.message);
+  } catch (_) {
+    // DB error — will retry next cycle
   } finally {
     routineRunning = false;
     await recordHeartbeat("Routine Dispatch");
@@ -163,15 +159,10 @@ async function runRecurringDispatch() {
       .eq("is_active", true)
       .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`);
 
-    if (!tasks || tasks.length === 0) return;
-
-    for (const task of tasks) {
-      const taskHHMM = task.reminder_time.slice(0, 5);
-
-      if (timeStr < taskHHMM) continue;
+    for (const task of tasks || []) {
+      if (timeStr < task.reminder_time.slice(0, 5)) continue;
 
       let shouldFire = false;
-
       if (task.recurrence_type === "weekly") {
         shouldFire = task.day_of_week === dayOfWeek;
       } else if (task.recurrence_type === "monthly") {
@@ -179,28 +170,27 @@ async function runRecurringDispatch() {
         const tomorrowIST = new Date(nowIST);
         tomorrowIST.setDate(tomorrowIST.getDate() + 1);
         const isLastDayOfMonth = tomorrowIST.getDate() === 1;
-
-        if (isLastDayOfMonth && task.day_of_month > day) {
-          shouldFire = true;
-        } else {
-          shouldFire = task.day_of_month === day;
-        }
+        shouldFire = (isLastDayOfMonth && task.day_of_month > day) || task.day_of_month === day;
       }
 
-      if (shouldFire) {
-        // Atomic claim — prevents duplicate sends if two dispatchers run concurrently
-        const { data: claimed } = await supabase
-          .from("recurring_tasks")
-          .update({ last_fired_date: todayIST })
-          .eq("id", task.id)
-          .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`)
-          .select("id");
-        if (!claimed?.length) continue;
-        await sendWhatsAppMessage(task.phone, task.task_name, templateOptions);
+      if (!shouldFire) continue;
+
+      const { data: claimed } = await supabase
+        .from("recurring_tasks")
+        .update({ last_fired_date: todayIST })
+        .eq("id", task.id)
+        .or(`last_fired_date.is.null,last_fired_date.neq.${todayIST}`)
+        .select("id");
+      if (!claimed?.length) continue;
+
+      try {
+        await sendWhatsAppMessage(task.phone, task.task_name);
+      } catch (_) {
+        await supabase.from("recurring_tasks").update({ last_fired_date: null }).eq("id", task.id);
       }
     }
-  } catch (err) {
-    console.error("[scheduler] Recurring dispatch error:", err.message);
+  } catch (_) {
+    // DB error — will retry next cycle
   } finally {
     recurringRunning = false;
     await recordHeartbeat("Recurring Task Dispatch");
@@ -208,18 +198,15 @@ async function runRecurringDispatch() {
 }
 
 // -----------------------------------------------------------------------
-// Cron jobs — call the exported dispatch functions every minute.
-// These run when the process is continuously awake (e.g. paid hosting).
-// When the process sleeps, /api/tick (called by an external cron service)
-// invokes the same functions to catch up on missed dispatches.
+// Cron jobs — fire every minute.
+// /api/tick calls the same functions when the process wakes from sleep.
 // -----------------------------------------------------------------------
 
 cron.schedule("* * * * *", runReminderDispatch);
 cron.schedule("* * * * *", runRoutineDispatch);
 cron.schedule("* * * * *", runRecurringDispatch);
 
-// CRON: Special event alerts — runs at 08:30 IST (03:00 UTC)
-// Kept as cron-only because calling it every minute would duplicate birthday alerts.
+// Special event alerts — 08:30 IST (03:00 UTC). Cron-only to avoid duplicates.
 cron.schedule("0 3 * * *", async () => {
   if (eventAlertRunning) return;
   eventAlertRunning = true;
@@ -232,7 +219,6 @@ cron.schedule("0 3 * * *", async () => {
     const tomorrowMonth = tomorrowDate.getMonth() + 1;
 
     const { data: events } = await supabase.from("special_events").select("*");
-
     if (!events) return;
 
     for (const event of events) {
@@ -241,23 +227,13 @@ cron.schedule("0 3 * * *", async () => {
       const eMonth = eDate.getMonth() + 1;
 
       if (eDay === todayDay && eMonth === todayMonth) {
-        await sendWhatsAppMessage(
-          event.phone,
-          `${event.person_name}'s ${event.event_type} is today.`,
-          templateOptions
-        );
-      }
-
-      if (eDay === tomorrowDay && eMonth === tomorrowMonth) {
-        await sendWhatsAppMessage(
-          event.phone,
-          `${event.person_name}'s ${event.event_type} is tomorrow.`,
-          templateOptions
-        );
+        await sendWhatsAppMessage(event.phone, `${event.person_name}'s ${event.event_type} is today.`);
+      } else if (eDay === tomorrowDay && eMonth === tomorrowMonth) {
+        await sendWhatsAppMessage(event.phone, `${event.person_name}'s ${event.event_type} is tomorrow.`);
       }
     }
-  } catch (err) {
-    console.error("[scheduler] Events cron error:", err.message);
+  } catch (_) {
+    // silent
   } finally {
     eventAlertRunning = false;
     await recordHeartbeat("Event Alert");
