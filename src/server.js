@@ -90,12 +90,12 @@ function buildReminderDate(timeString, dateString = null) {
   const now = new Date();
 
   if (dateString) {
-    const reminderDate = new Date(`${dateString}T${timeString}+05:30`);
+    const reminderDate = new Date(`${dateString}T${timeString}+03:00`);
     return reminderDate.toISOString();
   }
 
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Kolkata",
+    timeZone: "Europe/Bucharest",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -105,7 +105,7 @@ function buildReminderDate(timeString, dateString = null) {
   const month = parts.find((p) => p.type === "month").value;
   const day = parts.find((p) => p.type === "day").value;
 
-  const isoString = `${year}-${month}-${day}T${timeString}+05:30`;
+  const isoString = `${year}-${month}-${day}T${timeString}+03:00`;
   const reminderDate = new Date(isoString);
 
   if (reminderDate < now) {
@@ -338,7 +338,7 @@ app.post("/webhook", async (req, res) => {
   let isOwner = false;
 
   if (senderPhone === process.env.MY_PHONE_NUMBER) {
-    senderName = "Viswanath";
+    senderName = "David";
     isOwner = true;
   } else {
     const { data: contact } = await supabase
@@ -370,8 +370,8 @@ app.post("/webhook", async (req, res) => {
   // 3. GREETING
   if (lowerMsg === "hi" || lowerMsg === "hello" || lowerMsg === "hey") {
     const text = isOwner
-      ? `Hello Viswanath. Manvi online. You can set reminders, routines, events, search the web, or query your schedule.`
-      : `Hello ${senderName}. I am Manvi, Viswanath's personal assistant.`;
+      ? `Hello David. Manvi online. You can set reminders, routines, events, search the web, or query your schedule.`
+      : `Hello ${senderName}. I am Manvi, David's personal assistant.`;
     return await replyAndLog(senderPhone, senderName, message, text);
   }
 
@@ -443,7 +443,7 @@ app.post("/webhook", async (req, res) => {
       if (!searchResults) return await respond("Search tools are currently unavailable.");
 
       const summaryPrompt =
-        `Manvi assistant. Viswanath asked: "${message}". ` +
+        `Manvi assistant. David asked: "${message}". ` +
         `Results from ${searchResults.source}: ${searchResults.data}. ` +
         `Provide a concise, accurate response.`;
 
@@ -587,7 +587,7 @@ app.post("/webhook", async (req, res) => {
           text += "One-off Reminders:\n\n";
           oneOff.forEach((r) => {
             const t = new Date(r.reminder_time).toLocaleString("en-US", {
-              timeZone: "Asia/Kolkata", month: "short", day: "numeric",
+              timeZone: "Europe/Bucharest", month: "short", day: "numeric",
               hour: "numeric", minute: "2-digit", hour12: true,
             });
             text += `- [${t}] ${r.group_name ? r.group_name + ": " : ""}${r.message}\n`;
@@ -603,7 +603,7 @@ app.post("/webhook", async (req, res) => {
           });
           Object.entries(grouped).forEach(([msg, times]) => {
             const next = new Date(times[0]).toLocaleString("en-US", {
-              timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true,
+              timeZone: "Europe/Bucharest", hour: "numeric", minute: "2-digit", hour12: true,
             });
             text += `- "${msg}" — ${times.length} alerts remaining, next at ${next}\n`;
           });
@@ -699,7 +699,7 @@ app.post("/webhook", async (req, res) => {
         text += `\nReminders:\n`;
         reminders.forEach((r) => {
           const t = new Date(r.reminder_time).toLocaleTimeString("en-US", {
-            timeZone: "Asia/Kolkata",
+            timeZone: "Europe/Bucharest",
             hour: "numeric",
             minute: "2-digit",
             hour12: true,
@@ -711,7 +711,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     if (intent === "event") {
-      const eventPersonName = finalName.toLowerCase() === "you" ? "Viswanath" : finalName;
+      const eventPersonName = finalName.toLowerCase() === "you" ? "David" : finalName;
       const { error } = await supabase.from("special_events").insert([{
         phone: targetPhone,
         event_type: taskOrMessage,
