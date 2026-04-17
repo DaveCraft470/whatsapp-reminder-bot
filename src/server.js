@@ -90,7 +90,7 @@ function buildReminderDate(timeString, dateString = null) {
   const now = new Date();
 
   if (dateString) {
-    const reminderDate = new Date(`${dateString}T${timeString}+03:00`);
+    const reminderDate = new Date(`${dateString}T${timeString}`);
     return reminderDate.toISOString();
   }
 
@@ -105,7 +105,7 @@ function buildReminderDate(timeString, dateString = null) {
   const month = parts.find((p) => p.type === "month").value;
   const day = parts.find((p) => p.type === "day").value;
 
-  const isoString = `${year}-${month}-${day}T${timeString}+03:00`;
+  const isoString = `${year}-${month}-${day}T${timeString}`;
   const reminderDate = new Date(isoString);
 
   if (reminderDate < now) {
@@ -116,10 +116,10 @@ function buildReminderDate(timeString, dateString = null) {
 
 // Formats HH:MM or HH:MM:SS to "9:00 AM"
 function formatTimeDisplay(rawTime) {
-  return new Date(`1970-01-01T${rawTime}`).toLocaleTimeString("en-US", {
-    hour: "numeric",
+  return new Date(`1970-01-01T${rawTime}`).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false, // Aici forțăm formatul 24h
   });
 }
 
@@ -236,7 +236,7 @@ app.get("/api/status", async (req, res) => {
       {
         name: "Routine Dispatch",
         schedule: "* * * * *",
-        description: "Matches current IST time against active daily routines",
+        description: "Matches current EEST time against active daily routines",
         layman: "The Habits Manager: Ensures recurring daily habits never get missed.",
         status: "scheduled",
         lastFired: dbJobs?.find(j => j.job_name === 'Routine Dispatch')?.last_fired || heartbeats['Routine Dispatch']
@@ -252,7 +252,7 @@ app.get("/api/status", async (req, res) => {
       {
         name: "Event Alert",
         schedule: "30 8 * * *",
-        description: "Double-lock birthday and event alerts at 08:30 IST",
+        description: "Double-lock birthday and event alerts at 08:30 EEST",
         layman: "The Announcer: Wakes up once a day at 8:30 AM to alert you of any birthdays or anniversaries.",
         status: "scheduled",
         lastFired: dbJobs?.find(j => j.job_name === 'Event Alert')?.last_fired || heartbeats['Event Alert']
@@ -588,7 +588,7 @@ app.post("/webhook", async (req, res) => {
           oneOff.forEach((r) => {
             const t = new Date(r.reminder_time).toLocaleString("en-US", {
               timeZone: "Europe/Bucharest", month: "short", day: "numeric",
-              hour: "numeric", minute: "2-digit", hour12: true,
+              hour: "numeric", minute: "2-digit", hour12: false,
             });
             text += `- [${t}] ${r.group_name ? r.group_name + ": " : ""}${r.message}\n`;
           });
@@ -603,7 +603,7 @@ app.post("/webhook", async (req, res) => {
           });
           Object.entries(grouped).forEach(([msg, times]) => {
             const next = new Date(times[0]).toLocaleString("en-US", {
-              timeZone: "Europe/Bucharest", hour: "numeric", minute: "2-digit", hour12: true,
+              timeZone: "Europe/Bucharest", hour: "numeric", minute: "2-digit", hour12: false,
             });
             text += `- "${msg}" — ${times.length} alerts remaining, next at ${next}\n`;
           });
@@ -702,7 +702,7 @@ app.post("/webhook", async (req, res) => {
             timeZone: "Europe/Bucharest",
             hour: "numeric",
             minute: "2-digit",
-            hour12: true,
+            hour12: false,
           });
           text += `- ${t}: ${r.message}\n`;
         });
